@@ -1,0 +1,12 @@
+{
+  "routes": [
+    {
+      "src": "/api/generate",
+      "dest": "/api/generate.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}

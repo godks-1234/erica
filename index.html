@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>러닝 세이프가드 (Running Safeguard)</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    body { background-color: #f0f7ff; }
+  </style>
+</head>
+<body class="font-sans antialiased text-slate-800">
+
+  <div class="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+    
+    <header class="flex items-center justify-between bg-blue-600 text-white p-4 rounded-2xl shadow-md">
+      <div class="flex items-center space-x-2">
+        <span class="text-2xl">🏃‍♂️</span>
+        <h1 class="text-xl font-bold tracking-tight">러닝 안전 가이드</h1>
+      </div>
+      <button id="weatherSimBtn" class="bg-blue-500 hover:bg-blue-400 text-white font-semibold text-sm py-2 px-4 rounded-xl transition shadow">
+        🌤️ 날씨 변화 알림 시뮬레이션
+      </button>
+    </header>
+
+    <section class="bg-white p-6 rounded-2xl shadow-sm border border-blue-100">
+      <h2 class="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
+        <span>⌚</span> 디바이스 연동 및 생체 데이터
+      </h2>
+      <form id="healthForm" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">수면 시간 (시간)</label>
+          <input type="number" id="sleep" value="7" step="0.5" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">안정 시 심박수 (RHR)</label>
+          <input type="number" id="rhr" value="62" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">최근 운동량 (상태)</label>
+          <select id="workload" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-blue-500">
+            <option value="보통">보통 (유지 중)</option>
+            <option value="높음">높음 (최근 과훈련)</option>
+            <option value="낮음">낮음 (휴식 충분)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">피로도 (1~10)</label>
+          <input type="number" id="fatigue" value="4" min="1" max="10" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">현재 심박수 (bpm)</label>
+          <input type="number" id="currentHr" value="135" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">현재 속도 (km/h)</label>
+          <input type="number" id="speed" value="9.5" step="0.1" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">현재 운동시간 (분)</label>
+          <input type="number" id="duration" value="20" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-blue-500">
+        </div>
+        <div class="flex items-end">
+          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-2.5 rounded-xl transition shadow cursor-pointer">
+            AI 상태 분석 요청
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      
+      <section class="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 flex flex-col">
+        <h3 class="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
+          <span>📅</span> 권장 러닝 타임테이블
+        </h3>
+        <div id="timetableOutput" class="flex-1 text-sm text-slate-500 space-y-3">
+          <p class="italic">상태 분석 요청 시 맞춤형 타임라인 페이스 가이드가 이곳에 출력됩니다.</p>
+        </div>
+      </section>
+
+      <section class="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 flex flex-col">
+        <h3 class="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
+          <span>💡</span> AI 종합 안전 피드백
+        </h3>
+        <div id="feedbackOutput" class="flex-1 text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+          <p class="italic text-slate-500">디바이스 데이터를 전송하면 안전 심박수 도달 여부 및 페이스 조절 추천 알림 텍스트가 표시됩니다.</p>
+        </div>
+      </section>
+
+    </div>
+
+  </div>
+
+  <script>
+    window.addEventListener('load', () => {
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    });
+
+    document.getElementById('weatherSimBtn').addEventListener('click', () => {
+      const msg = "🚨 [기상 급변 경보] 10분 내 강한 소나기와 돌풍이 예상됩니다. 안전한 곳으로 대피하거나 페이스를 낮추세요!";
+      if ('vibrate' in navigator) {
+        navigator.vibrate([200, 100, 200]);
+      }
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification("러닝 안전 경고", { body: msg, icon: '🏃‍♂️' });
+      } else {
+        alert(msg);
+      }
+    });
+
+    document.getElementById('healthForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const timetableOutput = document.getElementById('timetableOutput');
+      const feedbackOutput = document.getElementById('feedbackOutput');
+      
+      timetableOutput.innerHTML = `<p class="text-blue-500 animate-pulse">디바이스 정보를 확인하여 맞춤형 플랜을 짜는 중...</p>`;
+      feedbackOutput.innerHTML = `<p class="text-blue-500 animate-pulse">생체 신호를 기반으로 안전 피드백을 계산 중입니다...</p>`;
+
+      const payload = {
+        sleep: document.getElementById('sleep').value,
+        rhr: document.getElementById('rhr').value,
+        workload: document.getElementById('workload').value,
+        fatigue: document.getElementById('fatigue').value,
+        currentHr: document.getElementById('currentHr').value,
+        speed: document.getElementById('speed').value,
+        duration: document.getElementById('duration').value,
+      };
+
+      try {
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error('서버 에러가 발생했습니다.');
+        
+        const data = await response.json();
+
+        if (data.timetable && data.timetable.length > 0) {
+          let html = `<div class="relative border-l border-blue-200 ml-2 space-y-4">`;
+          data.timetable.forEach(item => {
+            html += `
+              <div class="mb-4 ml-4">
+                <div class="absolute w-3 h-3 bg-blue-500 rounded-full -left-1.5 border border-white mt-1.5"></div>
+                <span class="text-xs font-bold text-blue-600 block">${item.time}</span>
+                <p class="text-slate-700 mt-0.5">${item.action}</p>
+              </div>
+            `;
+          });
+          html += `</div>`;
+          timetableOutput.innerHTML = html;
+        } else {
+          timetableOutput.innerHTML = `<p class="text-slate-400">제공된 타임테이블이 없습니다.</p>`;
+        }
+
+        feedbackOutput.innerHTML = `<div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-slate-700 font-medium">${data.feedback}</div>`;
+
+      } catch (error) {
+        timetableOutput.innerHTML = `<p class="text-red-500">데이터를 불러오지 못했습니다.</p>`;
+        feedbackOutput.innerHTML = `<p class="text-red-500">에러 내용: ${error.message}</p>`;
+      }
+    });
+  </script>
+</body>
+</html>
