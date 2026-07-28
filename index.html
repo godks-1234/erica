@@ -93,7 +93,6 @@
 
             <div class="input-card">
                 <div class="section-title">🏃 정보 입력 & 신체·환경 통합분석</div>
-
                 <div class="form-grid">
                     <div class="input-group"><label for="height">신장 (cm)</label><input type="number" id="height" value="175"></div>
                     <div class="input-group"><label for="weight">체중 (kg)</label><input type="number" id="weight" value="65"></div>
@@ -137,12 +136,41 @@
         </div>
     </div>
 
+    <!-- Leaflet 지도 라이브러리 선행 로드 -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
+
+    <!-- 💡 모든 자바스크립트 로직을 하나의 module 스코프로 통합하여 상호 충돌을 원천 방지합니다. -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { 
+            getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Firebase 설정 고정
+        const firebaseConfig = {
+            apiKey: "AIzaSyCC81Sd9qJjana1VK1qPg99mTijSp5_3ZQ",
+            authDomain: "erica-ac4d1.firebaseapp.com",
+            projectId: "erica-ac4d1",
+            storageBucket: "erica-ac4d1.firebasestorage.app",
+            messagingSenderId: "186480549738",
+            appId: "1:186480549738:web:f925a9910e9e23c7dc8f13"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // [기존 위치/지도 관련 전역 변수]
         let userLocation = { lat: 37.5665, lon: 126.9780 }; 
         let map = null, routeLayer = null, startMarker = null, watchId = null;
 
+        // [게시판 관련 DOM 매핑] - 기존 아이디명에 맞게 유지
+        const boardInput = document.getElementById('board-input');         
+        const submitBtn = document.getElementById('btn-board-submit');     
+        const boardListContainer = document.getElementById('board-list-container'); 
+
+        // 윈도우 로드 시 전체 초기화 프로세스 작동
         window.addEventListener('DOMContentLoaded', () => {
+            // 스플래시 화면 제어
             setTimeout(() => {
                 document.getElementById('splash-screen').style.opacity = '0';
                 document.getElementById('main-app').style.display = 'flex';
@@ -152,17 +180,17 @@
                 }, 800);
             }, 2500);
 
-            startTracking();
+            startTracking(); // 실시간 위치 엔진 가동
+            loadPosts();     // Firestore 게시글 가져오기
         });
 
-        // 물리 하드웨어 센서 기반 실시간 위치 추적 (VPN IP 위조 우회 가능)
+        // 1. 실시간 위치 추적 트래킹 기능
         function startTracking() {
             if (navigator.geolocation) {
                 watchId = navigator.geolocation.watchPosition(
                     (position) => {
                         const newLat = Number(position.coords.latitude);
                         const newLon = Number(position.coords.longitude);
-                        // 유의미한 이동 거리 발생 여부 체크 (센서 튐 방지)
                         const isMoved = Math.abs(userLocation.lat - newLat) > 0.0001 || Math.abs(userLocation.lon - newLon) > 0.0001;
                         
                         userLocation.lat = newLat;
@@ -173,7 +201,6 @@
                         document.getElementById('location-status').style.color = '#1b5e20';
 
                         if (map && startMarker) startMarker.setLatLng([userLocation.lat, userLocation.lon]);
-                        // 이미 분석 창이 열린 상태에서 사용자가 실제로 이동하면 무음으로 동적 경로 재계산
                         if (document.getElementById('result-section').style.display === 'grid' && isMoved) triggerAnalysis(true);
                     },
                     (error) => { 
@@ -186,6 +213,7 @@
             }
         }
 
+        // 2. AI 분석 리포트 및 기상 엔진 연동 함수
         async function triggerAnalysis(isSilent = false) {
             const height = document.getElementById('height').value;
             const weight = document.getElementById('weight').value;
@@ -255,7 +283,66 @@
             } catch (err) { document.getElementById('loader').style.display = 'none'; }
         }
 
+        // 분석 버튼 이벤트 바인딩
         document.getElementById('btn-analyze').addEventListener('click', () => triggerAnalysis(false));
+
+
+        // 3. Firestore 의견 게시판 연동 함수 (최신순 로드)
+        async function loadPosts() {
+            if (!boardListContainer) return;
+            try {
+                const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(q);
+                boardListContainer.innerHTML = "";
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const postElement = document.createElement('div');
+                    postElement.className = 'existing-post-item-class'; // 💡 기존 CSS 명칭 유지
+                    
+                    postElement.innerHTML = `
+                        <div class="post-content">${escapeHtml(data.content)}</div>
+                        <div class="post-date" style="font-size: 0.8rem; opacity: 0.5; margin-top: 5px;">
+                            ${data.createdAt ? new Date(data.createdAt.toDate()).toLocaleString('ko-KR') : '방금 전'}
+                        </div>
+                    `;
+                    boardListContainer.appendChild(postElement);
+                });
+            } catch (error) {
+                console.error("게시판 불러오기 실패:", error);
+            }
+        }
+
+        // 4. 게시판 등록 버튼 이벤트 바인딩
+        if (submitBtn) {
+            submitBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const contentText = boardInput.value.trim();
+                if (!contentText) {
+                    alert("내용을 입력해 주세요.");
+                    return;
+                }
+
+                try {
+                    submitBtn.disabled = true;
+                    await addDoc(collection(db, "posts"), {
+                        content: contentText,
+                        createdAt: serverTimestamp() 
+                    });
+                    boardInput.value = "";
+                    await loadPosts();
+                } catch (error) {
+                    console.error("Firestore 저장 실패:", error);
+                    alert("글 등록 중 통신 오류가 발생했습니다.");
+                } finally {
+                    submitBtn.disabled = false;
+                }
+            });
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
     </script>
 </body>
 </html>
