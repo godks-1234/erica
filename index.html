@@ -6,269 +6,73 @@
     <title>Running Mate</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        body, html {
-            width: 100%;
-            height: 100%;
-            background-color: #ffffff;
-            color: #333333;
-            overflow: hidden;
-        }
-
-        #splash-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #0052D4 0%, #4364F7 50%, #6FB1FC 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            transition: opacity 0.8s ease;
-        }
-
-        .splash-title {
-            color: #ffffff;
-            font-size: 3rem;
-            font-weight: 800;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            font-style: italic;
-            animation: pulse 2s infinite ease-in-out;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.05); opacity: 1; }
-            100% { transform: scale(0.95); opacity: 0.8; }
-        }
-
-        #main-app {
-            display: none;
-            width: 100%;
-            height: 100%;
-            flex-direction: column;
-            background-color: #f4f7f6;
-            opacity: 0;
-            transition: opacity 0.5s ease;
-        }
-
-        .dashboard-header {
-            background: linear-gradient(90deg, #0052D4, #4364F7);
-            color: white;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            z-index: 10;
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body, html { width: 100%; height: 100%; background-color: #ffffff; color: #333333; overflow: hidden; }
+        #splash-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #0052D4, #4364F7); display: flex; justify-content: center; align-items: center; z-index: 1000; transition: opacity 0.8s ease; }
+        .splash-title { color: #ffffff; font-size: 3rem; font-weight: 800; font-style: italic; }
+        #main-app { display: none; width: 100%; height: 100%; flex-direction: column; background-color: #f4f7f6; opacity: 0; transition: opacity 0.5s ease; }
+        .dashboard-header { background: linear-gradient(90deg, #0052D4, #4364F7); color: white; padding: 15px 20px; display: flex; justify-content: space-around; align-items: center; z-index: 10; }
         .stat-box { text-align: center; }
-        .stat-label { font-size: 0.8rem; opacity: 0.8; margin-bottom: 2px; }
+        .stat-label { font-size: 0.8rem; opacity: 0.8; }
         .stat-value { font-size: 1.6rem; font-weight: 700; }
+        .content-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
 
-        .content-container {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        /* 📸 감성 디자인 날씨 위젯 - 스크롤 시 위로 이동 */
-        .weather-widget-card {
-            display: none;
-            background: linear-gradient(145deg, #514A7F, #3B3466);
-            color: #ffffff;
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0 8px 20px rgba(59, 52, 102, 0.25);
-            width: 100%;
-        }
-
-        .weather-main-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-
-        .weather-temp-box .temp-num { font-size: 3.5rem; font-weight: 800; line-height: 1; }
-        .weather-temp-box .weather-status { font-size: 1.1rem; font-weight: 600; margin-top: 5px; opacity: 0.9; }
-        .weather-location { font-size: 0.95rem; margin-top: 15px; font-weight: 500; }
-        .weather-art-icon { font-size: 4.5rem; line-height: 1; }
-
-        /* 5칸 그리드로 확장 (비 올 확률 추가) */
-        .weather-detail-grid {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(255, 255, 255, 0.15);
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 5px;
-            text-align: center;
-        }
-
-        .wd-item { display: flex; flex-direction: column; gap: 2px; }
-        .wd-label { font-size: 0.7rem; opacity: 0.7; white-space: nowrap; }
+        .weather-widget-card { display: none; background: linear-gradient(145deg, #514A7F, #3B3466); color: #ffffff; padding: 20px; border-radius: 16px; }
+        .weather-main-row { display: flex; justify-content: space-between; }
+        .weather-temp-box .temp-num { font-size: 3.5rem; font-weight: 800; }
+        .weather-detail-grid { margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.15); display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; }
+        .wd-label { font-size: 0.7rem; opacity: 0.7; }
         .wd-val { font-size: 0.85rem; font-weight: 700; }
 
-        /* 🎯 오늘의 러닝 점수 전용 대시보드 컴포넌트 */
-        .score-card {
-            display: none;
-            background: #ffffff;
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            border-left: 5px solid #ff9500;
-            align-items: center;
-            gap: 20px;
-        }
+        .score-card { display: none; background: #ffffff; border-radius: 16px; padding: 20px; border-left: 5px solid #ff9500; align-items: center; gap: 20px; }
+        .score-circle-container { width: 80px; height: 80px; display: flex; justify-content: center; align-items: center; border-radius: 50%; border: 4px solid #ff9500; font-size: 1.8rem; font-weight: 800; color: #ff9500; }
 
-        .score-circle-container {
-            position: relative;
-            width: 80px;
-            height: 80px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #fff8ee;
-            border-radius: 50%;
-            border: 4px solid #ff9500;
-        }
+        .input-card { background: white; border-radius: 16px; padding: 20px; border-left: 5px solid #0052D4; }
+        .section-title { font-size: 1.1rem; font-weight: 700; color: #0052D4; margin-bottom: 15px; }
 
-        .score-number {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: #ff9500;
-        }
-
-        .score-info {
-            flex: 1;
-        }
-
-        .score-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 4px;
-        }
-
-        .score-desc {
-            font-size: 0.9rem;
-            color: #666;
-            line-height: 1.4;
-        }
-
-        .input-card {
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            border-left: 5px solid #0052D4;
-        }
-
-        .section-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #0052D4;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 15px;
-        }
-
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
         .input-group { display: flex; flex-direction: column; gap: 5px; }
         .input-group label { font-size: 0.8rem; font-weight: 600; color: #666; }
-        .input-group input, .input-group select { padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem; background-color: #fafafa; outline: none; }
-
-        .btn-submit {
-            width: 100%;
-            background: linear-gradient(90deg, #4364F7, #0052D4);
-            color: white;
-            border: none;
-            padding: 12px;
-            font-size: 1rem;
-            font-weight: 700;
-            border-radius: 8px;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(67, 100, 247, 0.3);
-        }
-
+        .input-group input, .input-group select { padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+        
+        .btn-submit { width: 100%; background: linear-gradient(90deg, #4364F7, #0052D4); color: white; border: none; padding: 12px; font-size: 1rem; font-weight: 700; border-radius: 8px; cursor: pointer; }
         .location-badge { display: inline-block; background-color: #e6efff; color: #0052D4; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-top: 5px; }
 
         .output-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 15px; }
-        .map-card { grid-column: span 2; background: white; border-radius: 16px; padding: 15px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
+        .map-card { grid-column: span 2; background: white; border-radius: 16px; padding: 15px; }
         #map { width: 100%; height: 320px; border-radius: 12px; border: 1px solid #ddd; z-index: 1; }
-
-        .output-panel { background: white; border-radius: 16px; padding: 18px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); overflow-y: auto; max-height: 400px; }
+        .output-panel { background: white; border-radius: 16px; padding: 18px; overflow-y: auto; max-height: 400px; }
+        
         .timeline { position: relative; padding-left: 20px; border-left: 2px solid #e6efff; }
         .timeline-item { position: relative; margin-bottom: 20px; }
         .timeline-item::before { content: ''; position: absolute; left: -26px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background-color: #4364F7; border: 2px solid white; }
         .timeline-item.alert::before { background-color: #ff3b30; }
-        .timeline-time { font-size: 0.85rem; font-weight: 700; color: #4364F7; margin-bottom: 4px; }
-        .timeline-content { font-size: 0.9rem; font-weight: 600; color: #333; }
-        .timeline-alert-text { font-size: 0.8rem; color: #ff3b30; background-color: #ffebe9; padding: 6px 10px; border-radius: 6px; margin-top: 5px; display: block; line-height: 1.4; border-left: 3px solid #ff3b30; }
-
-        .description-text { font-size: 0.95rem; line-height: 1.6; color: #444; white-space: pre-line; }
-        .description-text h3 { color: #0052D4; margin-top: 15px; margin-bottom: 8px; font-size: 1.1rem; border-bottom: 1px solid #f0f0f0; padding-bottom: 4px; }
-
+        .timeline-alert-text { font-size: 0.8rem; color: #ff3b30; background-color: #ffebe9; padding: 6px 10px; border-radius: 6px; margin-top: 5px; border-left: 3px solid #ff3b30; }
+        .description-text { font-size: 0.95rem; line-height: 1.6; white-space: pre-line; }
         .loader { display: none; text-align: center; padding: 30px; color: #4364F7; font-weight: 600; }
-
-        @media (max-width: 768px) {
-            .output-grid { grid-template-columns: 1fr; }
-            .map-card { grid-column: span 1; }
-            .weather-detail-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        }
     </style>
 </head>
 <body>
 
-    <div id="splash-screen">
-        <div class="splash-title">Running Mate</div>
-    </div>
+    <div id="splash-screen"><div class="splash-title">Running Mate</div></div>
 
     <div id="main-app">
         <div class="dashboard-header">
-            <div class="stat-box">
-                <div class="stat-label">추천 시간</div>
-                <div class="stat-value" id="running-time">00:00</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">목표 거리</div>
-                <div class="stat-value" id="running-distance">-- km</div>
-            </div>
+            <div class="stat-box"><div class="stat-label">추천 시간</div><div class="stat-value" id="running-time">00:00</div></div>
+            <div class="stat-box"><div class="stat-label">목표 거리</div><div class="stat-value" id="running-distance">-- km</div></div>
         </div>
 
         <div class="content-container">
-            
-            <!-- 날씨 카드 (스크롤 시 위로 밀림) -->
+            <!-- 날씨 카드 -->
             <div class="weather-widget-card" id="weather-widget">
                 <div class="weather-main-row">
                     <div class="weather-temp-box">
                         <div class="temp-num" id="w-temp">--°</div>
                         <div class="weather-status" id="w-status">맑음</div>
-                        <div class="weather-location">📍 <span id="w-addr">현재 분석 위치</span></div>
+                        <div class="weather-location">📍 <span id="w-addr">실시간 동기화 완료</span></div>
                     </div>
-                    <div class="weather-art-icon" id="w-icon">🌙</div>
+                    <div class="weather-art-icon" id="w-icon">☀️</div>
                 </div>
-                
                 <div class="weather-detail-grid">
                     <div class="wd-item"><span class="wd-label">💧 습도</span><span class="wd-val" id="w-humidity">--%</span></div>
                     <div class="wd-item"><span class="wd-label">💨 바람</span><span class="wd-val" id="w-wind">-- m/s</span></div>
@@ -278,28 +82,21 @@
                 </div>
             </div>
 
-            <!-- 🎯 신체 X 날씨 종합 지표: 오늘의 러닝 점수 카드 추가 -->
+            <!-- 점수 보드 -->
             <div class="score-card" id="score-block">
-                <div class="score-circle-container">
-                    <span class="score-number" id="lbl-score">0</span>
-                </div>
+                <div class="score-circle-container" id="lbl-score">0</div>
                 <div class="score-info">
                     <div class="score-title">🎯 오늘의 AI 신체·환경 러닝 점수</div>
-                    <div class="score-desc" id="lbl-comment">데이터 분석 대기 중...</div>
+                    <div class="score-desc" id="lbl-comment">데이터 대기 중</div>
                 </div>
             </div>
 
             <div class="input-card">
                 <div class="section-title">🏃 정보 입력 & 신체·환경 통합분석</div>
+
                 <div class="form-grid">
-                    <div class="input-group">
-                        <label for="height">신장 (cm)</label>
-                        <input type="number" id="height" value="175">
-                    </div>
-                    <div class="input-group">
-                        <label for="weight">체중 (kg)</label>
-                        <input type="number" id="weight" value="65">
-                    </div>
+                    <div class="input-group"><label for="height">신장 (cm)</label><input type="number" id="height" value="175"></div>
+                    <div class="input-group"><label for="weight">체중 (kg)</label><input type="number" id="weight" value="65"></div>
                     <div class="input-group">
                         <label for="experience">러닝 숙련도</label>
                         <select id="experience">
@@ -313,31 +110,27 @@
                         <select id="condition">
                             <option value="good" selected>좋음 (에너지 넘침)</option>
                             <option value="normal">보통 (무난함)</option>
-                            <option value="tired">피곤함 (가벼운 조깅 필요)</option>
+                            <option value="tired">피곤함</option>
                         </select>
                     </div>
                 </div>
                 <button class="btn-submit" id="btn-analyze">AI 맞춤 코칭 가이드 받기</button>
-                <div id="location-status" class="location-badge">📍 위치 확인 중...</div>
+                <div id="location-status" class="location-badge">📍 위치 탐색 중...</div>
             </div>
 
-            <div id="loader" class="loader">
-                ⚡ 입력하신 신체 스펙과 미세먼지, 자외선, 비 올 확률 데이터를 융합하여 오늘의 러닝 가용 지수를 채점 중입니다...
-            </div>
+            <div id="loader" class="loader">⚡ gemini-3.1-flash-lite 분석 엔진 가동 중...</div>
 
             <div class="output-grid" id="result-section" style="display: none;">
                 <div class="map-card">
-                    <div class="section-title">🗺️ AI 추천 우회 러닝 맵 (실제 도로망 일치)</div>
+                    <div class="section-title">🗺️ AI 추천 우회 러닝 맵 (OSRM 도로망 연동)</div>
                     <div id="map"></div>
                 </div>
-
                 <div class="output-panel">
                     <div class="section-title">⏱️ 신체 맞춤 구간 타임라인</div>
                     <div class="timeline" id="timeline-container"></div>
                 </div>
-
                 <div class="output-panel">
-                    <div class="section-title">📋 AI 신체중심 러닝 코칭 레포트</div>
+                    <div class="section-title">📋 AI 코칭 레포트</div>
                     <div class="description-text" id="description-container"></div>
                 </div>
             </div>
@@ -347,156 +140,122 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         let userLocation = { lat: 37.5665, lon: 126.9780 }; 
-        let map = null;
-        let routeLayer = null;
-        let startMarker = null;
+        let map = null, routeLayer = null, startMarker = null, watchId = null;
 
         window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
-                const splash = document.getElementById('splash-screen');
-                const mainApp = document.getElementById('main-app');
-                splash.style.opacity = '0';
-                mainApp.style.display = 'flex';
+                document.getElementById('splash-screen').style.opacity = '0';
+                document.getElementById('main-app').style.display = 'flex';
                 setTimeout(() => {
-                    splash.style.display = 'none';
-                    mainApp.style.opacity = '1';
+                    document.getElementById('splash-screen').style.display = 'none';
+                    document.getElementById('main-app').style.opacity = '1';
                 }, 800);
             }, 2500);
 
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        userLocation.lat = Number(position.coords.latitude);
-                        userLocation.lon = Number(position.coords.longitude);
-                        document.getElementById('location-status').innerText = `📍 현재 위치 확보 완료 (${userLocation.lat.toFixed(4)}, ${userLocation.lon.toFixed(4)})`;
-                    },
-                    (error) => {
-                        document.getElementById('location-status').innerText = `📍 위치 권한 미허용 (기본: 서울 기준)`;
-                    },
-                    { enableHighAccuracy: true, timeout: 8000 }
-                );
-            }
+            startTracking();
         });
 
-        document.getElementById('btn-analyze').addEventListener('click', async () => {
+        // 물리 하드웨어 센서 기반 실시간 위치 추적 (VPN IP 위조 우회 가능)
+        function startTracking() {
+            if (navigator.geolocation) {
+                watchId = navigator.geolocation.watchPosition(
+                    (position) => {
+                        const newLat = Number(position.coords.latitude);
+                        const newLon = Number(position.coords.longitude);
+                        // 유의미한 이동 거리 발생 여부 체크 (센서 튐 방지)
+                        const isMoved = Math.abs(userLocation.lat - newLat) > 0.0001 || Math.abs(userLocation.lon - newLon) > 0.0001;
+                        
+                        userLocation.lat = newLat;
+                        userLocation.lon = newLon;
+                        
+                        document.getElementById('location-status').innerText = `📡 실시간 GPS 매핑 중 (${userLocation.lat.toFixed(4)}, ${userLocation.lon.toFixed(4)})`;
+                        document.getElementById('location-status').style.backgroundColor = '#e3fbe3';
+                        document.getElementById('location-status').style.color = '#1b5e20';
+
+                        if (map && startMarker) startMarker.setLatLng([userLocation.lat, userLocation.lon]);
+                        // 이미 분석 창이 열린 상태에서 사용자가 실제로 이동하면 무음으로 동적 경로 재계산
+                        if (document.getElementById('result-section').style.display === 'grid' && isMoved) triggerAnalysis(true);
+                    },
+                    (error) => { 
+                        document.getElementById('location-status').innerText = `⚠️ GPS 권한 차단됨 (기본 위치 작동)`; 
+                        document.getElementById('location-status').style.backgroundColor = '#ffebe9';
+                        document.getElementById('location-status').style.color = '#ff3b30';
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            }
+        }
+
+        async function triggerAnalysis(isSilent = false) {
             const height = document.getElementById('height').value;
             const weight = document.getElementById('weight').value;
             const experience = document.getElementById('experience').value;
             const condition = document.getElementById('condition').value;
             
-            const loader = document.getElementById('loader');
-            const resultSection = document.getElementById('result-section');
-            const weatherWidget = document.getElementById('weather-widget');
-            const scoreBlock = document.getElementById('score-block');
-            
-            loader.style.display = 'block';
-            resultSection.style.display = 'none';
+            if (!isSilent) {
+                document.getElementById('loader').style.display = 'block';
+                document.getElementById('result-section').style.display = 'none';
+            }
 
             try {
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        height: Number(height),
-                        weight: Number(weight),
-                        experience,
-                        condition,
-                        location: userLocation
-                    })
+                    body: JSON.stringify({ height: Number(height), weight: Number(weight), experience, condition, location: userLocation })
                 });
-
                 const data = await response.json();
-                
-                if (data.error) {
-                    alert("분석 중 오류 발생: " + data.error);
-                    loader.style.display = 'none';
-                    return;
-                }
+                if (data.error) return;
 
-                // 📌 데이터 매핑 및 UI 노출
                 document.getElementById('w-temp').innerText = data.weatherReal.temp;
                 document.getElementById('w-status').innerText = data.weatherReal.condition;
                 document.getElementById('w-humidity').innerText = data.weatherReal.humidity;
                 document.getElementById('w-wind').innerText = data.weatherReal.wind;
-                document.getElementById('w-rain').innerText = data.weatherReal.rainProb; // 비 올 확률 매핑
+                document.getElementById('w-rain').innerText = data.weatherReal.rainProb;
                 document.getElementById('w-uv').innerText = data.weatherExtra.uv;
                 document.getElementById('w-dust').innerText = data.weatherExtra.dust;
-                document.getElementById('w-addr').innerText = `위도 ${userLocation.lat.toFixed(2)}, 경도 ${userLocation.lon.toFixed(2)}`;
-                
-                const cond = data.weatherReal.condition;
-                let icon = "🌙";
-                if(cond.includes("맑음")) icon = "☀️";
-                else if(cond.includes("구름")) icon = "⛅";
-                else if(cond.includes("비")) icon = "🌧️";
-                document.getElementById('w-icon').innerText = icon;
-                
-                weatherWidget.style.display = 'block';
+                document.getElementById('weather-widget').style.display = 'block';
 
-                // 🎯 러닝 점수 주입
-                document.getElementById('lbl-score').innerText = data.runningScore || "80";
-                document.getElementById('lbl-comment').innerText = data.scoreComment || "";
-                scoreBlock.style.display = 'flex';
+                document.getElementById('lbl-score').innerText = data.runningScore;
+                document.getElementById('lbl-comment').innerText = data.scoreComment;
+                document.getElementById('score-block').style.display = 'flex';
 
                 document.getElementById('running-time').innerText = data.metrics.time;
                 document.getElementById('running-distance').innerText = data.metrics.distance;
 
-                const timelineContainer = document.getElementById('timeline-container');
-                timelineContainer.innerHTML = '';
+                const container = document.getElementById('timeline-container');
+                container.innerHTML = '';
                 data.timeline.forEach(item => {
                     const div = document.createElement('div');
                     div.className = `timeline-item ${item.isAlert ? 'alert' : ''}`;
                     let alertHtml = item.isAlert ? `<div class="timeline-alert-text">⚠️ ${item.alertText}</div>` : '';
-                    div.innerHTML = `
-                        <div class="timeline-time">${item.time}</div>
-                        <div class="timeline-content">${item.content}</div>
-                        ${alertHtml}
-                    `;
-                    timelineContainer.appendChild(div);
+                    div.innerHTML = `<div class="timeline-time">${item.time}</div><div class="timeline-content">${item.content}</div>${alertHtml}`;
+                    container.appendChild(div);
                 });
 
                 document.getElementById('description-container').innerHTML = data.descriptionMarkdown;
-                
-                loader.style.display = 'none';
-                resultSection.style.display = 'grid';
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('result-section').style.display = 'grid';
 
-                // 지도 활성화
                 setTimeout(() => {
                     if (!map) {
                         map = L.map('map').setView([userLocation.lat, userLocation.lon], 15);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            maxZoom: 19,
-                            attribution: '© OpenStreetMap'
-                        }).addTo(map);
-                    } else {
-                        map.setView([userLocation.lat, userLocation.lon], 15);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
                     }
-
-                    if (routeLayer) map.removeLayer(routeLayer);
-                    if (startMarker) map.removeLayer(startMarker);
-
-                    startMarker = L.marker([userLocation.lat, userLocation.lon])
-                        .addTo(map)
-                        .bindPopup('<b>🏃 내 출발지</b>')
-                        .openPopup();
-
-                    if (data.routeCoordinates && data.routeCoordinates.length > 0) {
-                        routeLayer = L.polyline(data.routeCoordinates, {
-                            color: '#4364F7',
-                            weight: 5,
-                            opacity: 0.9,
-                            dashArray: '2, 8'
-                        }).addTo(map);
-
-                        map.fitBounds(routeLayer.getBounds());
+                    if (!startMarker) {
+                        startMarker = L.marker([userLocation.lat, userLocation.lon]).addTo(map).bindPopup('🏃 내 실시간 위치').openPopup();
+                    } else {
+                        startMarker.setLatLng([userLocation.lat, userLocation.lon]);
+                    }
+                    if (data.routeCoordinates) {
+                        if (routeLayer) map.removeLayer(routeLayer);
+                        routeLayer = L.polyline(data.routeCoordinates, { color: '#4364F7', weight: 5, dashArray: '2, 8' }).addTo(map);
+                        if(!isSilent) map.fitBounds(routeLayer.getBounds());
                     }
                 }, 200);
+            } catch (err) { document.getElementById('loader').style.display = 'none'; }
+        }
 
-            } catch (err) {
-                console.error(err);
-                alert("서버 통신 실패");
-                loader.style.display = 'none';
-            }
-        });
+        document.getElementById('btn-analyze').addEventListener('click', () => triggerAnalysis(false));
     </script>
 </body>
 </html>
