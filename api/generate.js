@@ -1,4 +1,5 @@
-const { GoogleGenAI } = require("@google/generative-ai");
+// GoogleGenAI 대신 GoogleGenerativeAI로 변경합니다.
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -20,8 +21,9 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'GEMINI_API_KEY 환경 변수가 설정되지 않았습니다.' });
     }
     
-    // 표준 라이브러리 방식의 초기화
-    const ai = new GoogleGenAI(aiKey);
+    // 수정된 클래스 명칭으로 생성자를 호출합니다.
+    const ai = new GoogleGenerativeAI(aiKey);
+    
     // gemini-2.5-flash 모델 가져오기
     const model = ai.getGenerativeModel({ 
       model: "gemini-2.5-flash",
