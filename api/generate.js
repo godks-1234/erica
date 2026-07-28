@@ -1,7 +1,6 @@
-const { GoogleGenAI } = require("@google/genai");
+const { GoogleGenAI } = require("@google/generative-ai");
 
 export default async function handler(req, res) {
-  // POST 요청만 허용
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
@@ -9,7 +8,6 @@ export default async function handler(req, res) {
   try {
     const { height, weight, experience, condition, location } = req.body;
     
-    // 1. 가상 기상 상황 생성
     const currentHour = new Date().getHours();
     const mockWeather = {
       temp: currentHour > 18 || currentHour < 6 ? "24°C (야간)" : "31°C (낮 기온 높음, 폭염 주의 필요)",
@@ -17,14 +15,18 @@ export default async function handler(req, res) {
       condition: currentHour > 18 ? "맑고 선선한 바람" : "고온 다습, 자외선 강함"
     };
 
-    // 2. 환경변수 확인
     const aiKey = process.env.GEMINI_API_KEY;
     if (!aiKey) {
         return res.status(500).json({ error: 'GEMINI_API_KEY 환경 변수가 설정되지 않았습니다.' });
     }
     
-    // 3. AI 객체 생성 및 호출
-    const ai = new GoogleGenAI({ apiKey: aiKey });
+    // 표준 라이브러리 방식의 초기화
+    const ai = new GoogleGenAI(aiKey);
+    // gemini-2.5-flash 모델 가져오기
+    const model = ai.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      generationConfig: { responseMimeType: "application/json" }
+    });
     
     const prompt = `
       사용자의 위치, 신체 정보 및 실시간 날씨 데이터를 바탕으로 맞춤형 러닝 경로, 페이스 조절 및 타임라인 피드백을 JSON 포맷으로 생성해주세요.
@@ -66,15 +68,8 @@ export default async function handler(req, res) {
       }
     `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json"
-      }
-    });
-
-    const responseText = response.text.trim();
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text().trim();
     const parsedData = JSON.parse(responseText);
 
     return res.status(200).json(parsedData);
