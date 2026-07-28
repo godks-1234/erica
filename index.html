@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Running Mate</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * {
             box-sizing: border-box;
@@ -20,7 +21,6 @@
             overflow: hidden;
         }
 
-        /* 1. 스플래시 화면 */
         #splash-screen {
             position: fixed;
             top: 0;
@@ -52,7 +52,6 @@
             100% { transform: scale(0.95); opacity: 0.8; }
         }
 
-        /* 2. 메인 화면 컨테이너 */
         #main-app {
             display: none;
             width: 100%;
@@ -63,11 +62,11 @@
             transition: opacity 0.5s ease;
         }
 
-        /* 상단 대시보드 (운동시간, 거리) */
+        /* 📌 상단 대시보드 스펙 변경 */
         .dashboard-header {
             background: linear-gradient(90deg, #0052D4, #4364F7);
             color: white;
-            padding: 20px;
+            padding: 15px 20px;
             display: flex;
             justify-content: space-around;
             align-items: center;
@@ -79,18 +78,91 @@
         }
 
         .stat-label {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             text-transform: uppercase;
             opacity: 0.8;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
 
         .stat-value {
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             font-weight: 700;
         }
 
-        /* 스크롤 가능한 본문 영역 */
+        /* 📸 이미지 참고용 보라색 감성 날씨 위젯 디자인 */
+        .weather-widget-card {
+            display: none;
+            background: linear-gradient(145deg, #514A7F, #3B3466);
+            color: #ffffff;
+            padding: 20px;
+            border-radius: 16px;
+            margin: 20px 20px 0 20px;
+            box-shadow: 0 8px 20px rgba(59, 52, 102, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .weather-main-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .weather-temp-box .temp-num {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .weather-temp-box .weather-status {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+
+        .weather-location {
+            font-size: 0.95rem;
+            margin-top: 15px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .weather-art-icon {
+            font-size: 4.5rem;
+            line-height: 1;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.2));
+        }
+
+        /* 날씨 서브 디테일 그리드 (습도, 바람, 자외선, 미세먼지) */
+        .weather-detail-grid {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            text-align: center;
+        }
+
+        .wd-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .wd-label {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        .wd-val {
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
         .content-container {
             flex: 1;
             padding: 20px;
@@ -100,7 +172,6 @@
             gap: 20px;
         }
 
-        /* 입력 폼 영역 (상단 위치) */
         .input-card {
             background: white;
             border-radius: 16px;
@@ -145,12 +216,6 @@
             font-size: 0.9rem;
             background-color: #fafafa;
             outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .input-group input:focus, .input-group select:focus {
-            border-color: #4364F7;
-            background-color: #fff;
         }
 
         .btn-submit {
@@ -163,12 +228,7 @@
             font-weight: 700;
             border-radius: 8px;
             cursor: pointer;
-            transition: transform 0.1s, opacity 0.2s;
             box-shadow: 0 4px 10px rgba(67, 100, 247, 0.3);
-        }
-
-        .btn-submit:active {
-            transform: scale(0.98);
         }
 
         .location-badge {
@@ -182,12 +242,26 @@
             margin-top: 5px;
         }
 
-        /* 출력창 영역 (좌/우 분할 레이아웃) */
         .output-grid {
             display: grid;
             grid-template-columns: 1fr 1.2fr;
             gap: 15px;
-            min-height: 350px;
+        }
+
+        .map-card {
+            grid-column: span 2;
+            background: white;
+            border-radius: 16px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        #map {
+            width: 100%;
+            height: 300px;
+            border-radius: 12px;
+            border: 1px solid #ddd;
+            z-index: 1;
         }
 
         .output-panel {
@@ -196,10 +270,9 @@
             padding: 18px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             overflow-y: auto;
-            max-height: 500px;
+            max-height: 400px;
         }
 
-        /* 왼쪽 타임테이블 스타일 */
         .timeline {
             position: relative;
             padding-left: 20px;
@@ -221,12 +294,10 @@
             border-radius: 50%;
             background-color: #4364F7;
             border: 2px solid white;
-            box-shadow: 0 0 0 3px rgba(67, 100, 247, 0.2);
         }
 
         .timeline-item.alert::before {
             background-color: #ff3b30;
-            box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.2);
         }
 
         .timeline-time {
@@ -246,14 +317,14 @@
             font-size: 0.8rem;
             color: #ff3b30;
             background-color: #ffebe9;
-            padding: 4px 8px;
-            border-radius: 4px;
+            padding: 6px 10px;
+            border-radius: 6px;
             margin-top: 5px;
-            display: inline-block;
-            font-weight: 500;
+            display: block;
+            line-height: 1.4;
+            border-left: 3px solid #ff3b30;
         }
 
-        /* 오른쪽 텍스트 설명 스타일 */
         .description-text {
             font-size: 0.95rem;
             line-height: 1.6;
@@ -270,11 +341,6 @@
             padding-bottom: 4px;
         }
 
-        .description-text ul {
-            padding-left: 20px;
-            margin-bottom: 10px;
-        }
-
         .loader {
             display: none;
             text-align: center;
@@ -283,49 +349,74 @@
             font-weight: 600;
         }
 
-        /* 반응형 모바일 대응 */
         @media (max-width: 768px) {
-            .output-grid {
-                grid-template-columns: 1fr;
-            }
+            .output-grid { grid-template-columns: 1fr; }
+            .map-card { grid-column: span 1; }
+            .weather-detail-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- 1. 스플래시 화면 -->
     <div id="splash-screen">
         <div class="splash-title">Running Mate</div>
     </div>
 
-    <!-- 2. 메인 애플리케이션 화면 -->
     <div id="main-app">
-        <!-- 상단 운동 메트릭 대시보드 -->
+        <!-- 1. 기본 러닝 메트릭 헤더 -->
         <div class="dashboard-header">
             <div class="stat-box">
-                <div class="stat-label">운동 시간</div>
+                <div class="stat-label">추천 시간</div>
                 <div class="stat-value" id="running-time">00:00</div>
             </div>
             <div class="stat-box">
-                <div class="stat-label">추천 거리</div>
+                <div class="stat-label">목표 거리</div>
                 <div class="stat-value" id="running-distance">-- km</div>
             </div>
         </div>
 
-        <!-- 스크롤 가능 컨텐츠 바디 -->
+        <!-- 2. 감성 디자인 날씨 디스플레이 위젯 (요청 반영) -->
+        <div class="weather-widget-card" id="weather-widget">
+            <div class="weather-main-row">
+                <div class="weather-temp-box">
+                    <div class="temp-num" id="w-temp">--°</div>
+                    <div class="weather-status" id="w-status">맑음</div>
+                    <div class="weather-location">📍 <span id="w-addr">현재 분석 위치</span></div>
+                </div>
+                <div class="weather-art-icon" id="w-icon">🌙</div>
+            </div>
+            
+            <div class="weather-detail-grid">
+                <div class="wd-item">
+                    <span class="wd-label">💧 습도</span>
+                    <span class="wd-val" id="w-humidity">--%</span>
+                </div>
+                <div class="wd-item">
+                    <span class="wd-label">💨 바람</span>
+                    <span class="wd-val" id="w-wind">-- m/s</span>
+                </div>
+                <div class="wd-item">
+                    <span class="wd-label">☀️ 자외선</span>
+                    <span class="wd-val" id="w-uv">--</span>
+                </div>
+                <div class="wd-item">
+                    <span class="wd-label">😷 미세먼지</span>
+                    <span class="wd-val" id="w-dust">--</span>
+                </div>
+            </div>
+        </div>
+
         <div class="content-container">
-             
-            <!-- 입력창 카드 (상단) -->
             <div class="input-card">
-                <div class="section-title">🏃 정보 입력 & 위치 기반 코칭</div>
+                <div class="section-title">🏃 정보 입력 & 종합 기상 분석</div>
                 <div class="form-grid">
                     <div class="input-group">
                         <label for="height">신장 (cm)</label>
-                        <input type="number" id="height" placeholder="예: 175" value="175">
+                        <input type="number" id="height" value="175">
                     </div>
                     <div class="input-group">
                         <label for="weight">체중 (kg)</label>
-                        <input type="number" id="weight" placeholder="예: 70" value="65">
+                        <input type="number" id="weight" value="65">
                     </div>
                     <div class="input-group">
                         <label for="experience">러닝 숙련도</label>
@@ -344,76 +435,67 @@
                         </select>
                     </div>
                 </div>
-                <button class="btn-submit" id="btn-analyze">AI 러닝 가이드 받기</button>
+                <button class="btn-submit" id="btn-analyze">AI 통합 날씨 코칭 받기</button>
                 <div id="location-status" class="location-badge">📍 위치 확인 중...</div>
             </div>
 
-            <!-- 로딩 상태 표시 -->
             <div id="loader" class="loader">
-                ⚡ AI 코치가 실시간 날씨 정보를 분석하여 맞춤 경로와 페이스를 짜고 있습니다...
+                ⚡ 자외선, 바람, 미세먼지 수치를 바탕으로 맞춤 호흡 및 페이스 전략을 빌드하고 있습니다...
             </div>
 
-            <!-- 출력창 카드 (하단 2개 분할) -->
             <div class="output-grid" id="result-section" style="display: none;">
-                <!-- 왼쪽: 타임테이블 (페이스 조절 및 기상/컨디션 알람) -->
+                <div class="map-card">
+                    <div class="section-title">🗺️ AI 추천 실시간 러닝 맵</div>
+                    <div id="map"></div>
+                </div>
+
                 <div class="output-panel">
                     <div class="section-title">⏱️ 구간별 타임라인 & 피드백</div>
-                    <div class="timeline" id="timeline-container">
-                        <!-- 동적으로 주입됨 -->
-                    </div>
+                    <div class="timeline" id="timeline-container"></div>
                 </div>
 
-                <!-- 오른쪽: 텍스트 상세 설명 -->
                 <div class="output-panel">
-                    <div class="section-title">🗺️ AI 추천 러닝 가이드</div>
-                    <div class="description-text" id="description-container">
-                        <!-- 동적으로 주입됨 -->
-                    </div>
+                    <div class="section-title">📋 AI 추천 러닝 가이드</div>
+                    <div class="description-text" id="description-container"></div>
                 </div>
             </div>
-
         </div>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // 기본값 세팅 (GPS 미허용 시 서울 기준 좌표 적용)
         let userLocation = { lat: 37.5665, lon: 126.9780 }; 
+        let map = null;
+        let routeLayer = null;
+        let startMarker = null;
 
-        // 1. Splash Screen 전환 효과
         window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 const splash = document.getElementById('splash-screen');
                 const mainApp = document.getElementById('main-app');
-                
                 splash.style.opacity = '0';
                 mainApp.style.display = 'flex';
-                
                 setTimeout(() => {
                     splash.style.display = 'none';
                     mainApp.style.opacity = '1';
                 }, 800);
-            }, 2500); // 2.5초간 노출 후 전환
+            }, 2500);
 
-            // 사용자 위치 권한 획득 시도
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
-                        // 날씨 API 연동에 대비해 소수점을 유지한 명확한 숫자로 저장
                         userLocation.lat = Number(position.coords.latitude);
                         userLocation.lon = Number(position.coords.longitude);
                         document.getElementById('location-status').innerText = `📍 현재 위치 확보 완료 (${userLocation.lat.toFixed(4)}, ${userLocation.lon.toFixed(4)})`;
                     },
                     (error) => {
-                        document.getElementById('location-status').innerText = `📍 위치 권한 미허용 (기본: 서울 표준 기상 기준 제공)`;
+                        document.getElementById('location-status').innerText = `📍 위치 권한 미허용 (기본: 서울 기준)`;
                     },
                     { enableHighAccuracy: true, timeout: 8000 }
                 );
-            } else {
-                document.getElementById('location-status').innerText = `📍 브라우저 GPS 미지원 (기본: 서울 표준 기상 기준 제공)`;
             }
         });
 
-        // 2. AI 분석 요청 이벤트
         document.getElementById('btn-analyze').addEventListener('click', async () => {
             const height = document.getElementById('height').value;
             const weight = document.getElementById('weight').value;
@@ -422,12 +504,12 @@
             
             const loader = document.getElementById('loader');
             const resultSection = document.getElementById('result-section');
+            const weatherWidget = document.getElementById('weather-widget');
             
             loader.style.display = 'block';
             resultSection.style.display = 'none';
 
             try {
-                // 이전에 우리가 완성한 실제 날씨 연동 api/generate.js 백엔드로 전송
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -436,7 +518,7 @@
                         weight: Number(weight),
                         experience,
                         condition,
-                        location: userLocation // 💡 백엔드 날씨 API로 이 좌표가 넘어갑니다!
+                        location: userLocation
                     })
                 });
 
@@ -448,19 +530,36 @@
                     return;
                 }
 
-                // 상단 메트릭 업데이트
-                document.getElementById('running-time').innerText = data.metrics.time || "45:00";
-                document.getElementById('running-distance').innerText = data.metrics.distance || "5.0 km";
+                // 📌 보라색 날씨 카드 렌더링 업데이트
+                document.getElementById('w-temp').innerText = data.weatherReal.temp;
+                document.getElementById('w-status').innerText = data.weatherReal.condition;
+                document.getElementById('w-humidity').innerText = data.weatherReal.humidity;
+                document.getElementById('w-wind').innerText = data.weatherReal.wind;
+                document.getElementById('w-uv').innerText = data.weatherExtra.uv;
+                document.getElementById('w-dust').innerText = data.weatherExtra.dust;
+                document.getElementById('w-addr').innerText = `위도 ${userLocation.lat.toFixed(2)}, 경도 ${userLocation.lon.toFixed(2)}`;
+                
+                // 날씨 아이콘 분기 처리
+                const cond = data.weatherReal.condition;
+                let icon = "🌙";
+                if(cond.includes("맑음")) icon = "☀️";
+                else if(cond.includes("구름")) icon = "⛅";
+                else if(cond.includes("비")) icon = "🌧️";
+                document.getElementById('w-icon').innerText = icon;
+                
+                weatherWidget.style.display = 'block';
 
-                // 타임테이블 화면 렌더링
+                // 기본 메트릭 세팅
+                document.getElementById('running-time').innerText = data.metrics.time;
+                document.getElementById('running-distance').innerText = data.metrics.distance;
+
+                // 타임라인 그리기
                 const timelineContainer = document.getElementById('timeline-container');
                 timelineContainer.innerHTML = '';
                 data.timeline.forEach(item => {
                     const div = document.createElement('div');
                     div.className = `timeline-item ${item.isAlert ? 'alert' : ''}`;
-                    
                     let alertHtml = item.isAlert ? `<div class="timeline-alert-text">⚠️ ${item.alertText}</div>` : '';
-                    
                     div.innerHTML = `
                         <div class="timeline-time">${item.time}</div>
                         <div class="timeline-content">${item.content}</div>
@@ -469,16 +568,46 @@
                     timelineContainer.appendChild(div);
                 });
 
-                // 오른쪽 텍스트 가이드 렌더링
                 document.getElementById('description-container').innerHTML = data.descriptionMarkdown;
                 
-                // 결과 영역 부드럽게 표출
                 loader.style.display = 'none';
                 resultSection.style.display = 'grid';
 
+                // 지도 매핑
+                setTimeout(() => {
+                    if (!map) {
+                        map = L.map('map').setView([userLocation.lat, userLocation.lon], 15);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 19,
+                            attribution: '© OpenStreetMap'
+                        }).addTo(map);
+                    } else {
+                        map.setView([userLocation.lat, userLocation.lon], 15);
+                    }
+
+                    if (routeLayer) map.removeLayer(routeLayer);
+                    if (startMarker) map.removeLayer(startMarker);
+
+                    startMarker = L.marker([userLocation.lat, userLocation.lon])
+                        .addTo(map)
+                        .bindPopup('<b>🏃 출발지</b>')
+                        .openPopup();
+
+                    if (data.routeCoordinates && data.routeCoordinates.length > 0) {
+                        routeLayer = L.polyline(data.routeCoordinates, {
+                            color: '#4364F7',
+                            weight: 5,
+                            opacity: 0.8,
+                            dashArray: '5, 10'
+                        }).addTo(map);
+
+                        map.fitBounds(routeLayer.getBounds());
+                    }
+                }, 200);
+
             } catch (err) {
                 console.error(err);
-                alert("서버 연결에 실패했습니다.");
+                alert("서버 통신 실패");
                 loader.style.display = 'none';
             }
         });
