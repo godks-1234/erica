@@ -314,7 +314,7 @@
 
         <!-- 스크롤 가능 컨텐츠 바디 -->
         <div class="content-container">
-            
+             
             <!-- 입력창 카드 (상단) -->
             <div class="input-card">
                 <div class="section-title">🏃 정보 입력 & 위치 기반 코칭</div>
@@ -376,7 +376,8 @@
     </div>
 
     <script>
-        let userLocation = { lat: 37.5665, lon: 126.9780, city: "서울시" }; // 기본값 기본 세팅
+        // 기본값 세팅 (GPS 미허용 시 서울 기준 좌표 적용)
+        let userLocation = { lat: 37.5665, lon: 126.9780 }; 
 
         // 1. Splash Screen 전환 효과
         window.addEventListener('DOMContentLoaded', () => {
@@ -393,18 +394,22 @@
                 }, 800);
             }, 2500); // 2.5초간 노출 후 전환
 
-            // 사용자 위치 권한 획득 시도 및 날씨 API 모킹 대응
+            // 사용자 위치 권한 획득 시도
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
-                        userLocation.lat = position.coords.latitude;
-                        userLocation.lon = position.coords.longitude;
+                        // 날씨 API 연동에 대비해 소수점을 유지한 명확한 숫자로 저장
+                        userLocation.lat = Number(position.coords.latitude);
+                        userLocation.lon = Number(position.coords.longitude);
                         document.getElementById('location-status').innerText = `📍 현재 위치 확보 완료 (${userLocation.lat.toFixed(4)}, ${userLocation.lon.toFixed(4)})`;
                     },
                     (error) => {
-                        document.getElementById('location-status').innerText = `📍 위치 권한 미허용 (기본: 서울 표준 경로 제공)`;
-                    }
+                        document.getElementById('location-status').innerText = `📍 위치 권한 미허용 (기본: 서울 표준 기상 기준 제공)`;
+                    },
+                    { enableHighAccuracy: true, timeout: 8000 }
                 );
+            } else {
+                document.getElementById('location-status').innerText = `📍 브라우저 GPS 미지원 (기본: 서울 표준 기상 기준 제공)`;
             }
         });
 
@@ -422,16 +427,16 @@
             resultSection.style.display = 'none';
 
             try {
-                // 가상 오픈웨더 맵 대용 정보 조합하여 API 요청 연동
+                // 이전에 우리가 완성한 실제 날씨 연동 api/generate.js 백엔드로 전송
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        height,
-                        weight,
+                        height: Number(height),
+                        weight: Number(weight),
                         experience,
                         condition,
-                        location: userLocation
+                        location: userLocation // 💡 백엔드 날씨 API로 이 좌표가 넘어갑니다!
                     })
                 });
 
@@ -439,6 +444,7 @@
                 
                 if (data.error) {
                     alert("분석 중 오류 발생: " + data.error);
+                    loader.style.display = 'none';
                     return;
                 }
 
