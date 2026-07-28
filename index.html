@@ -42,7 +42,6 @@
             letter-spacing: 2px;
             text-transform: uppercase;
             font-style: italic;
-            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             animation: pulse 2s infinite ease-in-out;
         }
 
@@ -73,32 +72,20 @@
             z-index: 10;
         }
 
-        .stat-box {
-            text-align: center;
-        }
+        .stat-box { text-align: center; }
+        .stat-label { font-size: 0.8rem; opacity: 0.8; margin-bottom: 2px; }
+        .stat-value { font-size: 1.6rem; font-weight: 700; }
 
-        .stat-label {
-            font-size: 0.8rem;
-            opacity: 0.8;
-            margin-bottom: 2px;
-        }
-
-        .stat-value {
-            font-size: 1.6rem;
-            font-weight: 700;
-        }
-
-        /* 💡 수정: 스크롤 영역 내부로 포함시키기 위해 컨테이너 안으로 무대 이동 */
         .content-container {
             flex: 1;
             padding: 20px;
-            overflow-y: auto; /* 여기가 스크롤바가 생기는 영역입니다 */
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
             gap: 20px;
         }
 
-        /* 📸 보라색 감성 날씨 위젯 - 고정이 아니며 스크롤을 내리면 위로 함께 올라감 */
+        /* 📸 감성 디자인 날씨 위젯 - 스크롤 시 위로 이동 */
         .weather-widget-card {
             display: none;
             background: linear-gradient(145deg, #514A7F, #3B3466);
@@ -115,48 +102,72 @@
             align-items: flex-start;
         }
 
-        .weather-temp-box .temp-num {
-            font-size: 3.5rem;
-            font-weight: 800;
-            line-height: 1;
-        }
+        .weather-temp-box .temp-num { font-size: 3.5rem; font-weight: 800; line-height: 1; }
+        .weather-temp-box .weather-status { font-size: 1.1rem; font-weight: 600; margin-top: 5px; opacity: 0.9; }
+        .weather-location { font-size: 0.95rem; margin-top: 15px; font-weight: 500; }
+        .weather-art-icon { font-size: 4.5rem; line-height: 1; }
 
-        .weather-temp-box .weather-status {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-top: 5px;
-            opacity: 0.9;
-        }
-
-        .weather-location {
-            font-size: 0.95rem;
-            margin-top: 15px;
-            font-weight: 500;
-        }
-
-        .weather-art-icon {
-            font-size: 4.5rem;
-            line-height: 1;
-        }
-
+        /* 5칸 그리드로 확장 (비 올 확률 추가) */
         .weather-detail-grid {
             margin-top: 15px;
             padding-top: 15px;
             border-top: 1px solid rgba(255, 255, 255, 0.15);
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
             text-align: center;
         }
 
-        .wd-item {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
+        .wd-item { display: flex; flex-direction: column; gap: 2px; }
+        .wd-label { font-size: 0.7rem; opacity: 0.7; white-space: nowrap; }
+        .wd-val { font-size: 0.85rem; font-weight: 700; }
+
+        /* 🎯 오늘의 러닝 점수 전용 대시보드 컴포넌트 */
+        .score-card {
+            display: none;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border-left: 5px solid #ff9500;
+            align-items: center;
+            gap: 20px;
         }
 
-        .wd-label { font-size: 0.75rem; opacity: 0.7; }
-        .wd-val { font-size: 0.9rem; font-weight: 700; }
+        .score-circle-container {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fff8ee;
+            border-radius: 50%;
+            border: 4px solid #ff9500;
+        }
+
+        .score-number {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #ff9500;
+        }
+
+        .score-info {
+            flex: 1;
+        }
+
+        .score-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .score-desc {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.4;
+        }
 
         .input-card {
             background: white;
@@ -183,26 +194,9 @@
             margin-bottom: 15px;
         }
 
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .input-group label {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #666;
-        }
-
-        .input-group input, .input-group select {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            background-color: #fafafa;
-            outline: none;
-        }
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        .input-group label { font-size: 0.8rem; font-weight: 600; color: #666; }
+        .input-group input, .input-group select { padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem; background-color: #fafafa; outline: none; }
 
         .btn-submit {
             width: 100%;
@@ -217,128 +211,30 @@
             box-shadow: 0 4px 10px rgba(67, 100, 247, 0.3);
         }
 
-        .location-badge {
-            display: inline-block;
-            background-color: #e6efff;
-            color: #0052D4;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-top: 5px;
-        }
+        .location-badge { display: inline-block; background-color: #e6efff; color: #0052D4; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-top: 5px; }
 
-        .output-grid {
-            display: grid;
-            grid-template-columns: 1fr 1.2fr;
-            gap: 15px;
-        }
+        .output-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 15px; }
+        .map-card { grid-column: span 2; background: white; border-radius: 16px; padding: 15px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
+        #map { width: 100%; height: 320px; border-radius: 12px; border: 1px solid #ddd; z-index: 1; }
 
-        .map-card {
-            grid-column: span 2;
-            background: white;
-            border-radius: 16px;
-            padding: 15px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
+        .output-panel { background: white; border-radius: 16px; padding: 18px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); overflow-y: auto; max-height: 400px; }
+        .timeline { position: relative; padding-left: 20px; border-left: 2px solid #e6efff; }
+        .timeline-item { position: relative; margin-bottom: 20px; }
+        .timeline-item::before { content: ''; position: absolute; left: -26px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background-color: #4364F7; border: 2px solid white; }
+        .timeline-item.alert::before { background-color: #ff3b30; }
+        .timeline-time { font-size: 0.85rem; font-weight: 700; color: #4364F7; margin-bottom: 4px; }
+        .timeline-content { font-size: 0.9rem; font-weight: 600; color: #333; }
+        .timeline-alert-text { font-size: 0.8rem; color: #ff3b30; background-color: #ffebe9; padding: 6px 10px; border-radius: 6px; margin-top: 5px; display: block; line-height: 1.4; border-left: 3px solid #ff3b30; }
 
-        #map {
-            width: 100%;
-            height: 320px;
-            border-radius: 12px;
-            border: 1px solid #ddd;
-            z-index: 1;
-        }
+        .description-text { font-size: 0.95rem; line-height: 1.6; color: #444; white-space: pre-line; }
+        .description-text h3 { color: #0052D4; margin-top: 15px; margin-bottom: 8px; font-size: 1.1rem; border-bottom: 1px solid #f0f0f0; padding-bottom: 4px; }
 
-        .output-panel {
-            background: white;
-            border-radius: 16px;
-            padding: 18px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            overflow-y: auto;
-            max-height: 400px;
-        }
-
-        .timeline {
-            position: relative;
-            padding-left: 20px;
-            border-left: 2px solid #e6efff;
-        }
-
-        .timeline-item {
-            position: relative;
-            margin-bottom: 20px;
-        }
-
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -26px;
-            top: 4px;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background-color: #4364F7;
-            border: 2px solid white;
-        }
-
-        .timeline-item.alert::before {
-            background-color: #ff3b30;
-        }
-
-        .timeline-time {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #4364F7;
-            margin-bottom: 4px;
-        }
-
-        .timeline-content {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .timeline-alert-text {
-            font-size: 0.8rem;
-            color: #ff3b30;
-            background-color: #ffebe9;
-            padding: 6px 10px;
-            border-radius: 6px;
-            margin-top: 5px;
-            display: block;
-            line-height: 1.4;
-            border-left: 3px solid #ff3b30;
-        }
-
-        .description-text {
-            font-size: 0.95rem;
-            line-height: 1.6;
-            color: #444;
-            white-space: pre-line;
-        }
-
-        .description-text h3 {
-            color: #0052D4;
-            margin-top: 15px;
-            margin-bottom: 8px;
-            font-size: 1.1rem;
-            border-bottom: 1px solid #f0f0f0;
-            padding-bottom: 4px;
-        }
-
-        .loader {
-            display: none;
-            text-align: center;
-            padding: 30px;
-            color: #4364F7;
-            font-weight: 600;
-        }
+        .loader { display: none; text-align: center; padding: 30px; color: #4364F7; font-weight: 600; }
 
         @media (max-width: 768px) {
             .output-grid { grid-template-columns: 1fr; }
             .map-card { grid-column: span 1; }
-            .weather-detail-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+            .weather-detail-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
         }
     </style>
 </head>
@@ -349,7 +245,6 @@
     </div>
 
     <div id="main-app">
-        <!-- 대시보드 상단 고정 헤더 -->
         <div class="dashboard-header">
             <div class="stat-box">
                 <div class="stat-label">추천 시간</div>
@@ -361,10 +256,9 @@
             </div>
         </div>
 
-        <!-- 스크롤 가능 컨텐츠 영역 시작 -->
         <div class="content-container">
             
-            <!-- 💡 날씨 위젯을 여기로 이동: 이제 스크롤을 내리면 위로 올라가 숨겨집니다. -->
+            <!-- 날씨 카드 (스크롤 시 위로 밀림) -->
             <div class="weather-widget-card" id="weather-widget">
                 <div class="weather-main-row">
                     <div class="weather-temp-box">
@@ -376,22 +270,22 @@
                 </div>
                 
                 <div class="weather-detail-grid">
-                    <div class="wd-item">
-                        <span class="wd-label">💧 습도</span>
-                        <span class="wd-val" id="w-humidity">--%</span>
-                    </div>
-                    <div class="wd-item">
-                        <span class="wd-label">💨 바람</span>
-                        <span class="wd-val" id="w-wind">-- m/s</span>
-                    </div>
-                    <div class="wd-item">
-                        <span class="wd-label">☀️ 자외선</span>
-                        <span class="wd-val" id="w-uv">--</span>
-                    </div>
-                    <div class="wd-item">
-                        <span class="wd-label">😷 미세먼지</span>
-                        <span class="wd-val" id="w-dust">--</span>
-                    </div>
+                    <div class="wd-item"><span class="wd-label">💧 습도</span><span class="wd-val" id="w-humidity">--%</span></div>
+                    <div class="wd-item"><span class="wd-label">💨 바람</span><span class="wd-val" id="w-wind">-- m/s</span></div>
+                    <div class="wd-item"><span class="wd-label">☔ 비 확률</span><span class="wd-val" id="w-rain">--%</span></div>
+                    <div class="wd-item"><span class="wd-label">☀️ 자외선</span><span class="wd-val" id="w-uv">--</span></div>
+                    <div class="wd-item"><span class="wd-label">😷 미세먼지</span><span class="wd-val" id="w-dust">--</span></div>
+                </div>
+            </div>
+
+            <!-- 🎯 신체 X 날씨 종합 지표: 오늘의 러닝 점수 카드 추가 -->
+            <div class="score-card" id="score-block">
+                <div class="score-circle-container">
+                    <span class="score-number" id="lbl-score">0</span>
+                </div>
+                <div class="score-info">
+                    <div class="score-title">🎯 오늘의 AI 신체·환경 러닝 점수</div>
+                    <div class="score-desc" id="lbl-comment">데이터 분석 대기 중...</div>
                 </div>
             </div>
 
@@ -428,12 +322,12 @@
             </div>
 
             <div id="loader" class="loader">
-                ⚡ 신체 조건에 따른 관절 부담율과 도로망을 계산하여 우회 경로를 수립하고 있습니다...
+                ⚡ 입력하신 신체 스펙과 미세먼지, 자외선, 비 올 확률 데이터를 융합하여 오늘의 러닝 가용 지수를 채점 중입니다...
             </div>
 
             <div class="output-grid" id="result-section" style="display: none;">
                 <div class="map-card">
-                    <div class="section-title">🗺️ AI 추천 우회 러닝 맵 (건물 관통 방지)</div>
+                    <div class="section-title">🗺️ AI 추천 우회 러닝 맵 (실제 도로망 일치)</div>
                     <div id="map"></div>
                 </div>
 
@@ -493,6 +387,7 @@
             const loader = document.getElementById('loader');
             const resultSection = document.getElementById('result-section');
             const weatherWidget = document.getElementById('weather-widget');
+            const scoreBlock = document.getElementById('score-block');
             
             loader.style.display = 'block';
             resultSection.style.display = 'none';
@@ -518,10 +413,12 @@
                     return;
                 }
 
+                // 📌 데이터 매핑 및 UI 노출
                 document.getElementById('w-temp').innerText = data.weatherReal.temp;
                 document.getElementById('w-status').innerText = data.weatherReal.condition;
                 document.getElementById('w-humidity').innerText = data.weatherReal.humidity;
                 document.getElementById('w-wind').innerText = data.weatherReal.wind;
+                document.getElementById('w-rain').innerText = data.weatherReal.rainProb; // 비 올 확률 매핑
                 document.getElementById('w-uv').innerText = data.weatherExtra.uv;
                 document.getElementById('w-dust').innerText = data.weatherExtra.dust;
                 document.getElementById('w-addr').innerText = `위도 ${userLocation.lat.toFixed(2)}, 경도 ${userLocation.lon.toFixed(2)}`;
@@ -534,6 +431,11 @@
                 document.getElementById('w-icon').innerText = icon;
                 
                 weatherWidget.style.display = 'block';
+
+                // 🎯 러닝 점수 주입
+                document.getElementById('lbl-score').innerText = data.runningScore || "80";
+                document.getElementById('lbl-comment').innerText = data.scoreComment || "";
+                scoreBlock.style.display = 'flex';
 
                 document.getElementById('running-time').innerText = data.metrics.time;
                 document.getElementById('running-distance').innerText = data.metrics.distance;
@@ -557,7 +459,7 @@
                 loader.style.display = 'none';
                 resultSection.style.display = 'grid';
 
-                // 🗺️ 우회선 지도 그리기
+                // 지도 활성화
                 setTimeout(() => {
                     if (!map) {
                         map = L.map('map').setView([userLocation.lat, userLocation.lon], 15);
@@ -582,7 +484,7 @@
                             color: '#4364F7',
                             weight: 5,
                             opacity: 0.9,
-                            dashArray: '2, 8' // 촘촘한 대시선으로 격자 우회 느낌 시각화
+                            dashArray: '2, 8'
                         }).addTo(map);
 
                         map.fitBounds(routeLayer.getBounds());
