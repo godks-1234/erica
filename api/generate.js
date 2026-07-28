@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     
     // 호환성이 가장 높고 안정적인 gemini-1.5-flash 모델로 변경했습니다.
     const model = ai.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-3.1-flash-lite",
       generationConfig: { responseMimeType: "application/json" }
     });
     
