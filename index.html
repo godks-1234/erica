@@ -1,170 +1,481 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>러닝 세이프가드 (Running Safeguard)</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <style>
-    body { background-color: #f0f7ff; }
-  </style>
-</head>
-<body class="font-sans antialiased text-slate-800">
-
-  <div class="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
-    
-    <header class="flex items-center justify-between bg-blue-600 text-white p-4 rounded-2xl shadow-md">
-      <div class="flex items-center space-x-2">
-        <span class="text-2xl">🏃‍♂️</span>
-        <h1 class="text-xl font-bold tracking-tight">러닝 안전 가이드</h1>
-      </div>
-      <button id="weatherSimBtn" class="bg-blue-500 hover:bg-blue-400 text-white font-semibold text-sm py-2 px-4 rounded-xl transition shadow">
-        🌤️ 날씨 변화 알림 시뮬레이션
-      </button>
-    </header>
-
-    <section class="bg-white p-6 rounded-2xl shadow-sm border border-blue-100">
-      <h2 class="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
-        <span>⌚</span> 디바이스 연동 및 생체 데이터
-      </h2>
-      <form id="healthForm" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">수면 시간 (시간)</label>
-          <input type="number" id="sleep" value="7" step="0.5" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-blue-500">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">안정 시 심박수 (RHR)</label>
-          <input type="number" id="rhr" value="62" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-blue-500">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">최근 운동량 (상태)</label>
-          <select id="workload" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-blue-500">
-            <option value="보통">보통 (유지 중)</option>
-            <option value="높음">높음 (최근 과훈련)</option>
-            <option value="낮음">낮음 (휴식 충분)</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">피로도 (1~10)</label>
-          <input type="number" id="fatigue" value="4" min="1" max="10" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-blue-500">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">현재 심박수 (bpm)</label>
-          <input type="number" id="currentHr" value="135" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-blue-500">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">현재 속도 (km/h)</label>
-          <input type="number" id="speed" value="9.5" step="0.1" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-blue-500">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">현재 운동시간 (분)</label>
-          <input type="number" id="duration" value="20" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:border-blue-500">
-        </div>
-        <div class="flex items-end">
-          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-2.5 rounded-xl transition shadow cursor-pointer">
-            AI 상태 분석 요청
-          </button>
-        </div>
-      </form>
-    </section>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      
-      <section class="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 flex flex-col">
-        <h3 class="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
-          <span>📅</span> 권장 러닝 타임테이블
-        </h3>
-        <div id="timetableOutput" class="flex-1 text-sm text-slate-500 space-y-3">
-          <p class="italic">상태 분석 요청 시 맞춤형 타임라인 페이스 가이드가 이곳에 출력됩니다.</p>
-        </div>
-      </section>
-
-      <section class="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 flex flex-col">
-        <h3 class="text-lg font-bold text-blue-800 mb-4 flex items-center gap-2">
-          <span>💡</span> AI 종합 안전 피드백
-        </h3>
-        <div id="feedbackOutput" class="flex-1 text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
-          <p class="italic text-slate-500">디바이스 데이터를 전송하면 안전 심박수 도달 여부 및 페이스 조절 추천 알림 텍스트가 표시됩니다.</p>
-        </div>
-      </section>
-
-    </div>
-
-  </div>
-
-  <script>
-    window.addEventListener('load', () => {
-      if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
-      }
-    });
-
-    document.getElementById('weatherSimBtn').addEventListener('click', () => {
-      const msg = "🚨 [기상 급변 경보] 10분 내 강한 소나기와 돌풍이 예상됩니다. 안전한 곳으로 대피하거나 페이스를 낮추세요!";
-      if ('vibrate' in navigator) {
-        navigator.vibrate([200, 100, 200]);
-      }
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification("러닝 안전 경고", { body: msg, icon: '🏃‍♂️' });
-      } else {
-        alert(msg);
-      }
-    });
-
-    document.getElementById('healthForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const timetableOutput = document.getElementById('timetableOutput');
-      const feedbackOutput = document.getElementById('feedbackOutput');
-      
-      timetableOutput.innerHTML = `<p class="text-blue-500 animate-pulse">디바이스 정보를 확인하여 맞춤형 플랜을 짜는 중...</p>`;
-      feedbackOutput.innerHTML = `<p class="text-blue-500 animate-pulse">생체 신호를 기반으로 안전 피드백을 계산 중입니다...</p>`;
-
-      const payload = {
-        sleep: document.getElementById('sleep').value,
-        rhr: document.getElementById('rhr').value,
-        workload: document.getElementById('workload').value,
-        fatigue: document.getElementById('fatigue').value,
-        currentHr: document.getElementById('currentHr').value,
-        speed: document.getElementById('speed').value,
-        duration: document.getElementById('duration').value,
-      };
-
-      try {
-        const response = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) throw new Error('서버 에러가 발생했습니다.');
-        
-        const data = await response.json();
-
-        if (data.timetable && data.timetable.length > 0) {
-          let html = `<div class="relative border-l border-blue-200 ml-2 space-y-4">`;
-          data.timetable.forEach(item => {
-            html += `
-              <div class="mb-4 ml-4">
-                <div class="absolute w-3 h-3 bg-blue-500 rounded-full -left-1.5 border border-white mt-1.5"></div>
-                <span class="text-xs font-bold text-blue-600 block">${item.time}</span>
-                <p class="text-slate-700 mt-0.5">${item.action}</p>
-              </div>
-            `;
-          });
-          html += `</div>`;
-          timetableOutput.innerHTML = html;
-        } else {
-          timetableOutput.innerHTML = `<p class="text-slate-400">제공된 타임테이블이 없습니다.</p>`;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Running Mate</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        feedbackOutput.innerHTML = `<div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-slate-700 font-medium">${data.feedback}</div>`;
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            color: #333333;
+            overflow: hidden;
+        }
 
-      } catch (error) {
-        timetableOutput.innerHTML = `<p class="text-red-500">데이터를 불러오지 못했습니다.</p>`;
-        feedbackOutput.innerHTML = `<p class="text-red-500">에러 내용: ${error.message}</p>`;
-      }
-    });
-  </script>
+        /* 1. 스플래시 화면 */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0052D4 0%, #4364F7 50%, #6FB1FC 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.8s ease;
+        }
+
+        .splash-title {
+            color: #ffffff;
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-style: italic;
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            animation: pulse 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        /* 2. 메인 화면 컨테이너 */
+        #main-app {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            background-color: #f4f7f6;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        /* 상단 대시보드 (운동시간, 거리) */
+        .dashboard-header {
+            background: linear-gradient(90deg, #0052D4, #4364F7);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .stat-box {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        /* 스크롤 가능한 본문 영역 */
+        .content-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 입력 폼 영역 (상단 위치) */
+        .input-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border-left: 5px solid #0052D4;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0052D4;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .input-group label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .input-group input, .input-group select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background-color: #fafafa;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            border-color: #4364F7;
+            background-color: #fff;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: linear-gradient(90deg, #4364F7, #0052D4);
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            box-shadow: 0 4px 10px rgba(67, 100, 247, 0.3);
+        }
+
+        .btn-submit:active {
+            transform: scale(0.98);
+        }
+
+        .location-badge {
+            display: inline-block;
+            background-color: #e6efff;
+            color: #0052D4;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        /* 출력창 영역 (좌/우 분할 레이아웃) */
+        .output-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 15px;
+            min-height: 350px;
+        }
+
+        .output-panel {
+            background: white;
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            overflow-y: auto;
+            max-height: 500px;
+        }
+
+        /* 왼쪽 타임테이블 스타일 */
+        .timeline {
+            position: relative;
+            padding-left: 20px;
+            border-left: 2px solid #e6efff;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -26px;
+            top: 4px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #4364F7;
+            border: 2px solid white;
+            box-shadow: 0 0 0 3px rgba(67, 100, 247, 0.2);
+        }
+
+        .timeline-item.alert::before {
+            background-color: #ff3b30;
+            box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.2);
+        }
+
+        .timeline-time {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #4364F7;
+            margin-bottom: 4px;
+        }
+
+        .timeline-content {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .timeline-alert-text {
+            font-size: 0.8rem;
+            color: #ff3b30;
+            background-color: #ffebe9;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+            display: inline-block;
+            font-weight: 500;
+        }
+
+        /* 오른쪽 텍스트 설명 스타일 */
+        .description-text {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #444;
+            white-space: pre-line;
+        }
+
+        .description-text h3 {
+            color: #0052D4;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 4px;
+        }
+
+        .description-text ul {
+            padding-left: 20px;
+            margin-bottom: 10px;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 30px;
+            color: #4364F7;
+            font-weight: 600;
+        }
+
+        /* 반응형 모바일 대응 */
+        @media (max-width: 768px) {
+            .output-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. 스플래시 화면 -->
+    <div id="splash-screen">
+        <div class="splash-title">Running Mate</div>
+    </div>
+
+    <!-- 2. 메인 애플리케이션 화면 -->
+    <div id="main-app">
+        <!-- 상단 운동 메트릭 대시보드 -->
+        <div class="dashboard-header">
+            <div class="stat-box">
+                <div class="stat-label">운동 시간</div>
+                <div class="stat-value" id="running-time">00:00</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">추천 거리</div>
+                <div class="stat-value" id="running-distance">-- km</div>
+            </div>
+        </div>
+
+        <!-- 스크롤 가능 컨텐츠 바디 -->
+        <div class="content-container">
+            
+            <!-- 입력창 카드 (상단) -->
+            <div class="input-card">
+                <div class="section-title">🏃 정보 입력 & 위치 기반 코칭</div>
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label for="height">신장 (cm)</label>
+                        <input type="number" id="height" placeholder="예: 175" value="175">
+                    </div>
+                    <div class="input-group">
+                        <label for="weight">체중 (kg)</label>
+                        <input type="number" id="weight" placeholder="예: 70" value="65">
+                    </div>
+                    <div class="input-group">
+                        <label for="experience">러닝 숙련도</label>
+                        <select id="experience">
+                            <option value="beginner">초급자 (런린이)</option>
+                            <option value="intermediate" selected>중급자 (일반 러너)</option>
+                            <option value="advanced">상급자 (마라토너)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="condition">현재 컨디션</label>
+                        <select id="condition">
+                            <option value="good" selected>좋음 (에너지 넘침)</option>
+                            <option value="normal">보통 (무난함)</option>
+                            <option value="tired">피곤함 (가벼운 조깅 필요)</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn-submit" id="btn-analyze">AI 러닝 가이드 받기</button>
+                <div id="location-status" class="location-badge">📍 위치 확인 중...</div>
+            </div>
+
+            <!-- 로딩 상태 표시 -->
+            <div id="loader" class="loader">
+                ⚡ AI 코치가 실시간 날씨 정보를 분석하여 맞춤 경로와 페이스를 짜고 있습니다...
+            </div>
+
+            <!-- 출력창 카드 (하단 2개 분할) -->
+            <div class="output-grid" id="result-section" style="display: none;">
+                <!-- 왼쪽: 타임테이블 (페이스 조절 및 기상/컨디션 알람) -->
+                <div class="output-panel">
+                    <div class="section-title">⏱️ 구간별 타임라인 & 피드백</div>
+                    <div class="timeline" id="timeline-container">
+                        <!-- 동적으로 주입됨 -->
+                    </div>
+                </div>
+
+                <!-- 오른쪽: 텍스트 상세 설명 -->
+                <div class="output-panel">
+                    <div class="section-title">🗺️ AI 추천 러닝 가이드</div>
+                    <div class="description-text" id="description-container">
+                        <!-- 동적으로 주입됨 -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let userLocation = { lat: 37.5665, lon: 126.9780, city: "서울시" }; // 기본값 기본 세팅
+
+        // 1. Splash Screen 전환 효과
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                const mainApp = document.getElementById('main-app');
+                
+                splash.style.opacity = '0';
+                mainApp.style.display = 'flex';
+                
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                    mainApp.style.opacity = '1';
+                }, 800);
+            }, 2500); // 2.5초간 노출 후 전환
+
+            // 사용자 위치 권한 획득 시도 및 날씨 API 모킹 대응
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        userLocation.lat = position.coords.latitude;
+                        userLocation.lon = position.coords.longitude;
+                        document.getElementById('location-status').innerText = `📍 현재 위치 확보 완료 (${userLocation.lat.toFixed(4)}, ${userLocation.lon.toFixed(4)})`;
+                    },
+                    (error) => {
+                        document.getElementById('location-status').innerText = `📍 위치 권한 미허용 (기본: 서울 표준 경로 제공)`;
+                    }
+                );
+            }
+        });
+
+        // 2. AI 분석 요청 이벤트
+        document.getElementById('btn-analyze').addEventListener('click', async () => {
+            const height = document.getElementById('height').value;
+            const weight = document.getElementById('weight').value;
+            const experience = document.getElementById('experience').value;
+            const condition = document.getElementById('condition').value;
+            
+            const loader = document.getElementById('loader');
+            const resultSection = document.getElementById('result-section');
+            
+            loader.style.display = 'block';
+            resultSection.style.display = 'none';
+
+            try {
+                // 가상 오픈웨더 맵 대용 정보 조합하여 API 요청 연동
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        height,
+                        weight,
+                        experience,
+                        condition,
+                        location: userLocation
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert("분석 중 오류 발생: " + data.error);
+                    return;
+                }
+
+                // 상단 메트릭 업데이트
+                document.getElementById('running-time').innerText = data.metrics.time || "45:00";
+                document.getElementById('running-distance').innerText = data.metrics.distance || "5.0 km";
+
+                // 타임테이블 화면 렌더링
+                const timelineContainer = document.getElementById('timeline-container');
+                timelineContainer.innerHTML = '';
+                data.timeline.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = `timeline-item ${item.isAlert ? 'alert' : ''}`;
+                    
+                    let alertHtml = item.isAlert ? `<div class="timeline-alert-text">⚠️ ${item.alertText}</div>` : '';
+                    
+                    div.innerHTML = `
+                        <div class="timeline-time">${item.time}</div>
+                        <div class="timeline-content">${item.content}</div>
+                        ${alertHtml}
+                    `;
+                    timelineContainer.appendChild(div);
+                });
+
+                // 오른쪽 텍스트 가이드 렌더링
+                document.getElementById('description-container').innerHTML = data.descriptionMarkdown;
+                
+                // 결과 영역 부드럽게 표출
+                loader.style.display = 'none';
+                resultSection.style.display = 'grid';
+
+            } catch (err) {
+                console.error(err);
+                alert("서버 연결에 실패했습니다.");
+                loader.style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>
