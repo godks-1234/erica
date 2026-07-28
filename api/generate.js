@@ -61,7 +61,7 @@ export default async function handler(req, res) {
     const aiKey = process.env.GEMINI_API_KEY;
     const ai = new GoogleGenerativeAI(aiKey);
     const model = ai.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-3.1-flash-lite",
       generationConfig: { responseMimeType: "application/json" }
     });
 
