@@ -1,186 +1,116 @@
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-    let userLocation = { lat: 37.5665, lon: 126.9780 }; 
-    let map = null;
-    let routeLayer = null;
-    let startMarker = null;
-    let watchId = null; // 💡 실시간 추적 ID 저장 변수
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-    window.addEventListener('DOMContentLoaded', () => {
-        // 스플래시 화면 제어
-        setTimeout(() => {
-            const splash = document.getElementById('splash-screen');
-            const mainApp = document.getElementById('main-app');
-            splash.style.opacity = '0';
-            mainApp.style.display = 'flex';
-            setTimeout(() => {
-                splash.style.display = 'none';
-                mainApp.style.opacity = '1';
-            }, 800);
-        }, 2500);
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
 
-        // 💡 [실시간 위치 추적 도입]: 사용자가 이동할 때마다 감지
-        if (navigator.geolocation) {
-            watchId = navigator.geolocation.watchPosition(
-                (position) => {
-                    const newLat = Number(position.coords.latitude);
-                    const newLon = Number(position.coords.longitude);
-                    
-                    // 위치 변화가 유의미할 때 데이터 갱신 (오차 범위 방지)
-                    const isMoved = Math.abs(userLocation.lat - newLat) > 0.0001 || Math.abs(userLocation.lon - newLon) > 0.0001;
-                    
-                    userLocation.lat = newLat;
-                    userLocation.lon = newLon;
-                    
-                    document.getElementById('location-status').innerText = `📡 실시간 위치 추적 중 (${userLocation.lat.toFixed(4)}, ${userLocation.lon.toFixed(4)})`;
-                    document.getElementById('location-status').style.backgroundColor = '#e3fbe3';
-                    document.getElementById('location-status').style.color = '#1b5e20';
+  try {
+    const { height, weight, experience, condition, location } = req.body;
+    const lat = location?.lat || 37.5665;
+    const lon = location?.lon || 126.9780;
 
-                    // 1. 지도가 이미 로드되어 있다면 마커 위치를 실시간 갱신
-                    if (map && startMarker) {
-                        startMarker.setLatLng([userLocation.lat, userLocation.lon]);
-                    }
-
-                    // 2. 만약 이미 분석 결과 창이 띄워져 있는 상태에서 사용자가 크게 이동했다면 자동으로 경로 재계산
-                    if (document.getElementById('result-section').style.display === 'grid' && isMoved) {
-                        console.log("위치 변경 감지: 경로를 실시간 재동기화합니다.");
-                        triggerAnalysis(true); // 조용한 갱신 실행
-                    }
-                },
-                (error) => {
-                    document.getElementById('location-status').innerText = `⚠️ 실시간 위치 권한 오류 (기본위치 작동)`;
-                    document.getElementById('location-status').style.backgroundColor = '#ffebe9';
-                    document.getElementById('location-status').style.color = '#ff3b30';
-                },
-                { 
-                    enableHighAccuracy: true, // GPS 센서 정밀도 최대로 상향
-                    timeout: 10000, 
-                    maximumAge: 0 // 캐시된 위치를 쓰지 않고 항상 새 위치 요청
-                }
-            );
-        }
-    });
-
-    // 분석 실행 공통 함수 (isSilent: 실시간 갱신 시 로딩 스피너로 화면을 가리지 않음)
-    async function triggerAnalysis(isSilent = false) {
-        const height = document.getElementById('height').value;
-        const weight = document.getElementById('weight').value;
-        const experience = document.getElementById('experience').value;
-        const condition = document.getElementById('condition').value;
+    // [1] Open-Meteo 실시간 기상 데이터 가져오기
+    let realWeather = { temp: "24°", humidity: "60%", wind: "2.5 m/s", rainProb: "10%", condition: "맑음" };
+    try {
+      const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&hourly=precipitation_probability&forecast_hours=1`);
+      if (weatherResponse.ok) {
+        const weatherData = await weatherResponse.json();
+        const current = weatherData.current;
+        const hourly = weatherData.hourly;
         
-        const loader = document.getElementById('loader');
-        const resultSection = document.getElementById('result-section');
-        const weatherWidget = document.getElementById('weather-widget');
-        const scoreBlock = document.getElementById('score-block');
-        
-        if (!isSilent) {
-            loader.style.display = 'block';
-            resultSection.style.display = 'none';
+        let weatherText = "맑음";
+        if (current.weather_code >= 1 && current.weather_code <= 3) weatherText = "구름 조금";
+        else if (current.weather_code >= 51 && current.weather_code <= 67) weatherText = "비/이슬비";
+        else if (current.weather_code >= 80) weatherText = "소나기";
+
+        const prob = hourly?.precipitation_probability?.[0] !== undefined ? `${hourly.precipitation_probability[0]}%` : "0%";
+
+        realWeather = {
+          temp: `${Math.round(current.temperature_2m)}°`,
+          humidity: `${current.relative_humidity_2m}%`,
+          wind: `${(current.wind_speed_10m / 3.6).toFixed(1)} m/s`,
+          rainProb: prob,
+          condition: weatherText
+        };
+      }
+    } catch (e) { console.error("날씨 호출 실패:", e); }
+
+    // [2] OSRM 실제 도로망 내비게이션 엔진 연동
+    const wp1_lat = lat + 0.002; const wp1_lon = lon + 0.001;
+    const wp2_lat = lat + 0.001; const wp2_lon = lon + 0.003;
+    let actualRouteCoordinates = [];
+    try {
+      const osrmUrl = `https://router.project-osrm.org/route/v1/foot/${lon},${lat};${wp1_lon},${wp1_lat};${wp2_lon},${wp2_lat};${lon},${lat}?overview=full&geometries=geojson`;
+      const osrmRes = await fetch(osrmUrl);
+      if (osrmRes.ok) {
+        const osrmData = await osrmRes.json();
+        if (osrmData.routes && osrmData.routes.length > 0) {
+          actualRouteCoordinates = osrmData.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
         }
+      }
+    } catch (e) { console.error(e); }
 
-        try {
-            const response = await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    height: Number(height),
-                    weight: Number(weight),
-                    experience,
-                    condition,
-                    location: userLocation
-                })
-            });
-
-            const data = await response.json();
-            if (data.error) return;
-
-            // 실시간 날씨 및 강수 확률 갱신
-            document.getElementById('w-temp').innerText = data.weatherReal.temp;
-            document.getElementById('w-status').innerText = data.weatherReal.condition;
-            document.getElementById('w-humidity').innerText = data.weatherReal.humidity;
-            document.getElementById('w-wind').innerText = data.weatherReal.wind;
-            document.getElementById('w-rain').innerText = data.weatherReal.rainProb;
-            document.getElementById('w-uv').innerText = data.weatherExtra.uv;
-            document.getElementById('w-dust').innerText = data.weatherExtra.dust;
-            document.getElementById('w-addr').innerText = `실시간 동기화 완료`;
-            
-            const cond = data.weatherReal.condition;
-            let icon = "🌙";
-            if(cond.includes("맑음")) icon = "☀️";
-            else if(cond.includes("구름")) icon = "⛅";
-            else if(cond.includes("비")) icon = "🌧️";
-            document.getElementById('w-icon').innerText = icon;
-            weatherWidget.style.display = 'block';
-
-            // 실시간 점수 갱신
-            document.getElementById('lbl-score').innerText = data.runningScore || "80";
-            document.getElementById('lbl-comment').innerText = data.scoreComment || "";
-            scoreBlock.style.display = 'flex';
-
-            document.getElementById('running-time').innerText = data.metrics.time;
-            document.getElementById('running-distance').innerText = data.metrics.distance;
-
-            // 타임라인 생성
-            const timelineContainer = document.getElementById('timeline-container');
-            timelineContainer.innerHTML = '';
-            data.timeline.forEach(item => {
-                const div = document.createElement('div');
-                div.className = `timeline-item ${item.isAlert ? 'alert' : ''}`;
-                let alertHtml = item.isAlert ? `<div class="timeline-alert-text">⚠️ ${item.alertText}</div>` : '';
-                div.innerHTML = `
-                    <div class="timeline-time">${item.time}</div>
-                    <div class="timeline-content">${item.content}</div>
-                    ${alertHtml}
-                `;
-                timelineContainer.appendChild(div);
-            });
-
-            document.getElementById('description-container').innerHTML = data.descriptionMarkdown;
-            
-            loader.style.display = 'none';
-            resultSection.style.display = 'grid';
-
-            // 지도 레이어 동기화 처리
-            setTimeout(() => {
-                if (!map) {
-                    map = L.map('map').setView([userLocation.lat, userLocation.lon], 15);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        maxZoom: 19,
-                        attribution: '© OpenStreetMap'
-                    }).addTo(map);
-                }
-
-                if (!startMarker) {
-                    startMarker = L.marker([userLocation.lat, userLocation.lon])
-                        .addTo(map)
-                        .bindPopup('<b>🏃 실시간 내 위치</b>')
-                        .openPopup();
-                } else {
-                    startMarker.setLatLng([userLocation.lat, userLocation.lon]);
-                }
-
-                if (data.routeCoordinates && data.routeCoordinates.length > 0) {
-                    if (routeLayer) map.removeLayer(routeLayer);
-                    routeLayer = L.polyline(data.routeCoordinates, {
-                        color: '#4364F7',
-                        weight: 5,
-                        opacity: 0.9,
-                        dashArray: '2, 8'
-                    }).addTo(map);
-
-                    // 최초 1회 혹은 큰 이동 시에만 카메라 포커스 맞춤
-                    if(!isSilent) {
-                        map.fitBounds(routeLayer.getBounds());
-                    }
-                }
-            }, 200);
-
-        } catch (err) {
-            console.error("실시간 스트리밍 동기화 실패:", err);
-            loader.style.display = 'none';
-        }
+    if (actualRouteCoordinates.length === 0) {
+      actualRouteCoordinates = [[lat, lon], [lat + 0.0015, lon], [lat + 0.0015, lon + 0.002], [lat, lon]];
     }
 
-    // 수동 분석하기 버튼 클릭 시 이벤트 트리거
-    document.getElementById('btn-analyze').addEventListener('click', () => triggerAnalysis(false));
-</script>
+    // [3] AI 연동 (gemini-3.1-flash-lite 버전 고정 적용)
+    const aiKey = process.env.GEMINI_API_KEY;
+    if (!aiKey) {
+        return res.status(500).json({ error: 'GEMINI_API_KEY 환경 변수가 누락되었습니다.' });
+    }
+
+    const ai = new GoogleGenerativeAI(aiKey);
+    // 💡 요청하신 gemini-3.1-flash-lite 모델명으로 변경 및 고정
+    const model = ai.getGenerativeModel({ 
+      model: "gemini-3.1-flash-lite",
+      generationConfig: { responseMimeType: "application/json" }
+    });
+
+    const prompt = `
+      사용자의 신체조건과 실시간 기상 데이터를 결합하여 오늘의 러닝 효율성 점수 및 코칭 가이드를 JSON 포맷으로 생성해주세요.
+
+      [사용자 데이터]
+      - 신장: ${height}cm, 체중:${weight}kg
+      - 숙련도: ${experience}, 컨디션: ${condition}
+
+      [기상 데이터]
+      - 기온: ${realWeather.temp}, 습도: ${realWeather.humidity}, 바람:${realWeather.wind}, 상태: ${realWeather.condition}, 강수확률: ${realWeather.rainProb}
+
+      반드시 아래 형식의 순수 JSON으로만 출력하세요. 마크다운 블록은 금지합니다.
+      {
+        "runningScore": 85,
+        "scoreComment": "현재 신체 스펙에 최적화된 심박 구간 리듬 러닝을 제안합니다.",
+        "weatherExtra": { "uv": "보통", "dust": "좋음" },
+        "metrics": { "time": "35:00", "distance": "3.8 km" },
+        "timeline": [
+          {
+            "time": "00:00 - 05:00",
+            "content": "신체 관절 보호를 위한 슬로우 웜업 조깅",
+            "isAlert": true,
+            "alertText": "현재 비 올 확률이 ${realWeather.rainProb}이므로 지면 미끄러짐에 주의하시고, 바람 대처를 위해 맞바람 시 상체를 5도 기울이세요."
+          }
+        ],
+        "descriptionMarkdown": "<h3>🏃 신체 피드백 결과</h3><p>분석 완료되었습니다.</p>"
+      }
+    `;
+
+    const result = await model.generateContent(prompt);
+    const textResponse = result.response.text().trim();
+    
+    // JSON 파싱 검증 및 전송
+    const parsedData = JSON.parse(textResponse);
+    parsedData.routeCoordinates = actualRouteCoordinates;
+    parsedData.weatherReal = realWeather;
+
+    return res.status(200).json(parsedData);
+
+  } catch (error) {
+    console.error("API Error Details:", error);
+    return res.status(500).json({ 
+      error: '서버 내부 오류가 발생했습니다.', 
+      details: error.message 
+    });
+  }
+}
