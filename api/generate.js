@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     const lat = location?.lat || 37.5665;
     const lon = location?.lon || 126.9780;
 
-    // 1. Open-Meteo 실시간 기상 데이터 (기온, 습도, 바람, weather_code) 가져오기
+    // 1. Open-Meteo 실시간 기상 데이터 가져오기
     let realWeather = { temp: "24°C", humidity: "60%", wind: "2.5 m/s", condition: "맑음" };
     try {
       const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code`);
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
         realWeather = {
           temp: `${Math.round(current.temperature_2m)}°`,
           humidity: `${current.relative_humidity_2m}%`,
-          wind: `${(current.wind_speed_10m / 3.6).toFixed(1)} m/s`, // km/h -> m/s 변환
+          wind: `${(current.wind_speed_10m / 3.6).toFixed(1)} m/s`,
           condition: weatherText
         };
       }
@@ -43,68 +43,59 @@ export default async function handler(req, res) {
     
     const ai = new GoogleGenerativeAI(aiKey);
     const model = ai.getGenerativeModel({ 
-      model: "gemini-3.1-flash-lite",
+      model: "gemini-1.5-flash",
       generationConfig: { responseMimeType: "application/json" }
     });
     
+    // 💡 프롬프트 수정: 신체 조건 핵심 반영 + 건물 우회 실제 산책로/도로 좌표 요청
     const prompt = `
-      사용자의 신체 정보, 위치 정보 및 확장된 날씨 지표를 바탕으로 맞춤형 러닝 가이드를 JSON 포맷으로 생성해주세요.
-      
-      [분석할 실시간 기상 데이터]
-      - 기온: ${realWeather.temp}, 습도: ${realWeather.humidity}, 상태: ${realWeather.condition}
-      - 바람: ${realWeather.wind}
-      * (참고) 현재 위치의 시간대 및 계절적 특성을 고려하여 '자외선 지수(예: 높음, 보통)' 및 '미세먼지 농도(예: 좋음, 나쁨)'를 AI가 합리적으로 추정하여 분석에 포함시켜 주세요.
+      사용자의 신체조건(신장, 체중, 숙련도, 컨디션)을 1순위로 고려하고, 실시간 날씨를 결합하여 맞춤형 러닝 가이드를 생성해주세요.
 
-      [사용자 정보]
-      - 신장: ${height}cm, 체중: ${weight}kg, 숙련도: ${experience}, 컨디션: ${condition}
-      - 위치: 위도 ${lat}, 경도 ${lon}
+      [사용자 신체 및 성향 데이터]
+      - 신장: ${height}cm, 체중: ${weight}kg
+      - 러닝 숙련도: ${experience} (초급자는 걷기/뛰기 인터벌 필수, 상급자는 빌드업/지속주 위주)
+      - 오늘 컨디션: ${condition}
+      - 현재 위치: 위도 ${lat}, 경도 ${lon}
 
-      [코칭 반영 및 예시 출력 지침]
-      1. '자외선'과 '바람'에 대해서는 반드시 구체적인 대처 예시를 제공해야 합니다.
-         - 자외선 예시: "자외선 지수가 '높음' 단계이므로 30분 전 자외선 차단제 필수 도포, 자외선 차단 선글라스 및 캡모자 착용 권장"
-         - 바람 예시: "바람이 ${realWeather.wind}로 다소 강하므로 맞바람 구간에서는 페이스를 15초 낮추고 뒷바람 구간에서 속도를 올리는 윈드 러닝 전략 추천"
-      2. 미세먼지 수치에 따른 마스크 착용 여부나 호흡 페이스 조절 가이드를 포함하세요.
+      [실시간 기상 데이터]
+      - 기온: ${realWeather.temp}, 습도: ${realWeather.humidity}, 상태: ${realWeather.condition}, 바람: ${realWeather.wind}
+      * 날씨 외에 '자외선 지수(예: 높음)', '미세먼지(예: 보통)'를 합리적으로 추정해 포함하십시오.
 
-      [출력 요구 형식]
-      반드시 아래 구조의 순수 JSON 형태로만 답변하세요. 마크다운 블록(\`\`\`json)은 절대 쓰지 마십시오.
+      [핵심 요구사항]
+      1. 지형 및 건물 우회 (지도 경로선):
+         - routeCoordinates 배열에 절대 건물을 관통하는 직선을 주지 마십시오.
+         - 제공된 위도(${lat})와 경도(${lon}) 주변의 실제 인도, 천변 산책로, 혹은 큰 공원 둘레길 지형을 상상하여 도로망을 따라 꺾이는 정교한 6~9개의 좌표쌍([위도, 경도])을 격자 형태로 우회하듯 부드럽게 설계하세요. (직선 관통 금지)
+      2. 사용자 신체 맞춤형 피드백:
+         - 체중과 신장 대비 무릎 부담 여부를 판단하여 페이스(속도)와 착지법(미드풋 등)을 피드백에 반영하세요.
+         - 숙련도와 컨디션에 따른 타겟 심박수나 구간별 분속 페이스를 구체적으로 처방하세요. 날씨는 거들 뿐, 신체가 중심이어야 합니다.
+      3. 자외선과 바람 대처 예시 필수 포함.
 
+      [출력 요구 형식] (순수 JSON 형태)
       {
-        "weatherExtra": {
-          "uv": "높음",
-          "dust": "보통 (35µg/m³)"
-        },
-        "metrics": {
-          "time": "42:00",
-          "distance": "5.5 km"
-        },
+        "weatherExtra": { "uv": "높음", "dust": "좋음" },
+        "metrics": { "time": "35:00", "distance": "3.8 km" },
         "routeCoordinates": [
           [${lat}, ${lon}],
-          [${lat + 0.002}, ${lon + 0.002}],
-          [${lat + 0.004}, ${lon + 0.001}],
+          [${lat + 0.0015}, ${lon}],
+          [${lat + 0.0015}, ${lon + 0.002}],
+          [${lat + 0.003}, ${lon + 0.002}],
+          [${lat + 0.003}, ${lon}],
           [${lat}, ${lon}]
         ],
         "timeline": [
           {
             "time": "00:00 - 05:00",
-            "content": "웜업 스트레칭 및 가벼운 조깅 시작",
-            "isAlert": false,
-            "alertText": ""
-          },
-          {
-            "time": "15:00 - 30:00",
-            "content": "본격 페이스 러닝 구간",
+            "content": "신체 맞춤 워밍업 페이스 조절",
             "isAlert": true,
-            "alertText": "현재 자외선이 강하니 그늘막이 확보되는 천변 우측 코스를 이용하세요. 맞바람이 불 때는 상체를 약간 숙이십시오."
+            "alertText": "현재 과체중 범주 혹은 컨디션을 감안해 무릎 관절 보호를 위해 피치를 짧게 가져가세요. 바람 처방 예시: 맞바람이 부는 구역이므로 상체를 5도 숙이세요."
           }
         ],
-        "descriptionMarkdown": "<h3>🗺️ 주변 코스 및 통합 날씨 가이드</h3><p>현재 날씨 조건(바람, 자외선, 미세먼지)을 반영한 맞춤 가이드입니다...</p>"
+        "descriptionMarkdown": "<h3>🏃 신체 분석 기반 맞춤 가이드</h3><p>현재 숙련도와 체격 조건을 고려할 때...</p>"
       }
     `;
 
     const result = await model.generateContent(prompt);
     const parsedData = JSON.parse(result.response.text().trim());
-
-    // 실시간 날씨 원본 데이터도 함께 프론트로 전송
     parsedData.weatherReal = realWeather;
 
     return res.status(200).json(parsedData);
