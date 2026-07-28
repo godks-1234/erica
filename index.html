@@ -62,7 +62,6 @@
             transition: opacity 0.5s ease;
         }
 
-        /* 📌 상단 대시보드 스펙 변경 */
         .dashboard-header {
             background: linear-gradient(90deg, #0052D4, #4364F7);
             color: white;
@@ -71,6 +70,7 @@
             justify-content: space-around;
             align-items: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            z-index: 10;
         }
 
         .stat-box {
@@ -79,7 +79,6 @@
 
         .stat-label {
             font-size: 0.8rem;
-            text-transform: uppercase;
             opacity: 0.8;
             margin-bottom: 2px;
         }
@@ -89,17 +88,25 @@
             font-weight: 700;
         }
 
-        /* 📸 이미지 참고용 보라색 감성 날씨 위젯 디자인 */
+        /* 💡 수정: 스크롤 영역 내부로 포함시키기 위해 컨테이너 안으로 무대 이동 */
+        .content-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto; /* 여기가 스크롤바가 생기는 영역입니다 */
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 📸 보라색 감성 날씨 위젯 - 고정이 아니며 스크롤을 내리면 위로 함께 올라감 */
         .weather-widget-card {
             display: none;
             background: linear-gradient(145deg, #514A7F, #3B3466);
             color: #ffffff;
             padding: 20px;
             border-radius: 16px;
-            margin: 20px 20px 0 20px;
             box-shadow: 0 8px 20px rgba(59, 52, 102, 0.25);
-            position: relative;
-            overflow: hidden;
+            width: 100%;
         }
 
         .weather-main-row {
@@ -125,18 +132,13 @@
             font-size: 0.95rem;
             margin-top: 15px;
             font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 4px;
         }
 
         .weather-art-icon {
             font-size: 4.5rem;
             line-height: 1;
-            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.2));
         }
 
-        /* 날씨 서브 디테일 그리드 (습도, 바람, 자외선, 미세먼지) */
         .weather-detail-grid {
             margin-top: 15px;
             padding-top: 15px;
@@ -153,24 +155,8 @@
             gap: 2px;
         }
 
-        .wd-label {
-            font-size: 0.75rem;
-            opacity: 0.7;
-        }
-
-        .wd-val {
-            font-size: 0.9rem;
-            font-weight: 700;
-        }
-
-        .content-container {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
+        .wd-label { font-size: 0.75rem; opacity: 0.7; }
+        .wd-val { font-size: 0.9rem; font-weight: 700; }
 
         .input-card {
             background: white;
@@ -258,7 +244,7 @@
 
         #map {
             width: 100%;
-            height: 300px;
+            height: 320px;
             border-radius: 12px;
             border: 1px solid #ddd;
             z-index: 1;
@@ -363,7 +349,7 @@
     </div>
 
     <div id="main-app">
-        <!-- 1. 기본 러닝 메트릭 헤더 -->
+        <!-- 대시보드 상단 고정 헤더 -->
         <div class="dashboard-header">
             <div class="stat-box">
                 <div class="stat-label">추천 시간</div>
@@ -375,40 +361,42 @@
             </div>
         </div>
 
-        <!-- 2. 감성 디자인 날씨 디스플레이 위젯 (요청 반영) -->
-        <div class="weather-widget-card" id="weather-widget">
-            <div class="weather-main-row">
-                <div class="weather-temp-box">
-                    <div class="temp-num" id="w-temp">--°</div>
-                    <div class="weather-status" id="w-status">맑음</div>
-                    <div class="weather-location">📍 <span id="w-addr">현재 분석 위치</span></div>
-                </div>
-                <div class="weather-art-icon" id="w-icon">🌙</div>
-            </div>
-            
-            <div class="weather-detail-grid">
-                <div class="wd-item">
-                    <span class="wd-label">💧 습도</span>
-                    <span class="wd-val" id="w-humidity">--%</span>
-                </div>
-                <div class="wd-item">
-                    <span class="wd-label">💨 바람</span>
-                    <span class="wd-val" id="w-wind">-- m/s</span>
-                </div>
-                <div class="wd-item">
-                    <span class="wd-label">☀️ 자외선</span>
-                    <span class="wd-val" id="w-uv">--</span>
-                </div>
-                <div class="wd-item">
-                    <span class="wd-label">😷 미세먼지</span>
-                    <span class="wd-val" id="w-dust">--</span>
-                </div>
-            </div>
-        </div>
-
+        <!-- 스크롤 가능 컨텐츠 영역 시작 -->
         <div class="content-container">
+            
+            <!-- 💡 날씨 위젯을 여기로 이동: 이제 스크롤을 내리면 위로 올라가 숨겨집니다. -->
+            <div class="weather-widget-card" id="weather-widget">
+                <div class="weather-main-row">
+                    <div class="weather-temp-box">
+                        <div class="temp-num" id="w-temp">--°</div>
+                        <div class="weather-status" id="w-status">맑음</div>
+                        <div class="weather-location">📍 <span id="w-addr">현재 분석 위치</span></div>
+                    </div>
+                    <div class="weather-art-icon" id="w-icon">🌙</div>
+                </div>
+                
+                <div class="weather-detail-grid">
+                    <div class="wd-item">
+                        <span class="wd-label">💧 습도</span>
+                        <span class="wd-val" id="w-humidity">--%</span>
+                    </div>
+                    <div class="wd-item">
+                        <span class="wd-label">💨 바람</span>
+                        <span class="wd-val" id="w-wind">-- m/s</span>
+                    </div>
+                    <div class="wd-item">
+                        <span class="wd-label">☀️ 자외선</span>
+                        <span class="wd-val" id="w-uv">--</span>
+                    </div>
+                    <div class="wd-item">
+                        <span class="wd-label">😷 미세먼지</span>
+                        <span class="wd-val" id="w-dust">--</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="input-card">
-                <div class="section-title">🏃 정보 입력 & 종합 기상 분석</div>
+                <div class="section-title">🏃 정보 입력 & 신체·환경 통합분석</div>
                 <div class="form-grid">
                     <div class="input-group">
                         <label for="height">신장 (cm)</label>
@@ -435,27 +423,27 @@
                         </select>
                     </div>
                 </div>
-                <button class="btn-submit" id="btn-analyze">AI 통합 날씨 코칭 받기</button>
+                <button class="btn-submit" id="btn-analyze">AI 맞춤 코칭 가이드 받기</button>
                 <div id="location-status" class="location-badge">📍 위치 확인 중...</div>
             </div>
 
             <div id="loader" class="loader">
-                ⚡ 자외선, 바람, 미세먼지 수치를 바탕으로 맞춤 호흡 및 페이스 전략을 빌드하고 있습니다...
+                ⚡ 신체 조건에 따른 관절 부담율과 도로망을 계산하여 우회 경로를 수립하고 있습니다...
             </div>
 
             <div class="output-grid" id="result-section" style="display: none;">
                 <div class="map-card">
-                    <div class="section-title">🗺️ AI 추천 실시간 러닝 맵</div>
+                    <div class="section-title">🗺️ AI 추천 우회 러닝 맵 (건물 관통 방지)</div>
                     <div id="map"></div>
                 </div>
 
                 <div class="output-panel">
-                    <div class="section-title">⏱️ 구간별 타임라인 & 피드백</div>
+                    <div class="section-title">⏱️ 신체 맞춤 구간 타임라인</div>
                     <div class="timeline" id="timeline-container"></div>
                 </div>
 
                 <div class="output-panel">
-                    <div class="section-title">📋 AI 추천 러닝 가이드</div>
+                    <div class="section-title">📋 AI 신체중심 러닝 코칭 레포트</div>
                     <div class="description-text" id="description-container"></div>
                 </div>
             </div>
@@ -530,7 +518,6 @@
                     return;
                 }
 
-                // 📌 보라색 날씨 카드 렌더링 업데이트
                 document.getElementById('w-temp').innerText = data.weatherReal.temp;
                 document.getElementById('w-status').innerText = data.weatherReal.condition;
                 document.getElementById('w-humidity').innerText = data.weatherReal.humidity;
@@ -539,7 +526,6 @@
                 document.getElementById('w-dust').innerText = data.weatherExtra.dust;
                 document.getElementById('w-addr').innerText = `위도 ${userLocation.lat.toFixed(2)}, 경도 ${userLocation.lon.toFixed(2)}`;
                 
-                // 날씨 아이콘 분기 처리
                 const cond = data.weatherReal.condition;
                 let icon = "🌙";
                 if(cond.includes("맑음")) icon = "☀️";
@@ -549,11 +535,9 @@
                 
                 weatherWidget.style.display = 'block';
 
-                // 기본 메트릭 세팅
                 document.getElementById('running-time').innerText = data.metrics.time;
                 document.getElementById('running-distance').innerText = data.metrics.distance;
 
-                // 타임라인 그리기
                 const timelineContainer = document.getElementById('timeline-container');
                 timelineContainer.innerHTML = '';
                 data.timeline.forEach(item => {
@@ -573,7 +557,7 @@
                 loader.style.display = 'none';
                 resultSection.style.display = 'grid';
 
-                // 지도 매핑
+                // 🗺️ 우회선 지도 그리기
                 setTimeout(() => {
                     if (!map) {
                         map = L.map('map').setView([userLocation.lat, userLocation.lon], 15);
@@ -590,15 +574,15 @@
 
                     startMarker = L.marker([userLocation.lat, userLocation.lon])
                         .addTo(map)
-                        .bindPopup('<b>🏃 출발지</b>')
+                        .bindPopup('<b>🏃 내 출발지</b>')
                         .openPopup();
 
                     if (data.routeCoordinates && data.routeCoordinates.length > 0) {
                         routeLayer = L.polyline(data.routeCoordinates, {
                             color: '#4364F7',
                             weight: 5,
-                            opacity: 0.8,
-                            dashArray: '5, 10'
+                            opacity: 0.9,
+                            dashArray: '2, 8' // 촘촘한 대시선으로 격자 우회 느낌 시각화
                         }).addTo(map);
 
                         map.fitBounds(routeLayer.getBounds());
